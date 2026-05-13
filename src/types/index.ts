@@ -43,15 +43,34 @@ export interface EstoqueConsolidado {
   divergencia: boolean
 }
 
+export type UserRole = 'usuario' | 'desenvolvedor' | 'administrador'
+
+export interface User {
+  id: string
+  email: string
+  username: string
+  passwordHash: string
+  role: UserRole
+  mustChangePassword: boolean
+  createdAt: string
+}
+
 export interface AppState {
   siacItems: SiacItem[]
   velloziaItems: VelloziaItem[]
   idProdutoGrupo: IdProdutoGrupo[]
   relacionamentos: RelacionamentoSiacVellozia[]
   sidebarCollapsed: boolean
+  users: User[]
+  currentUser: User | null
   setSiacItems: (items: SiacItem[]) => void
   setVelloziaItems: (items: VelloziaItem[]) => void
   setIdProdutoGrupo: (items: IdProdutoGrupo[]) => void
   setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => void
   setSidebarCollapsed: (v: boolean) => void
+  setCurrentUser: (user: User | null) => void
+  setUsers: (users: User[]) => void
+  addUser: (user: User) => void
+  updateUser: (id: string, updates: Partial<User>) => void
+  deleteUser: (id: string) => void
 }
