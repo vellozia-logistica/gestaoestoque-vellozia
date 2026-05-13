@@ -197,21 +197,21 @@ export default function EstoqueConsolidado() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="w-full text-sm">
+      <div className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-xs">
           <thead>
             <tr style={{ backgroundColor: '#4f2e87' }} className="text-white">
-              <th className="px-4 py-3 text-left font-medium">Produto</th>
-              <th className="px-4 py-3 text-left font-medium">Lote</th>
-              <th className="px-4 py-3 text-left font-medium">Vencimento</th>
-              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Goiânia (SIAC)</th>
-              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Goiânia (Vellozia)</th>
-              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Diferença</th>
+              <th className="px-3 py-2.5 text-left font-medium">Produto</th>
+              <th className="px-2 py-2.5 text-left font-medium whitespace-nowrap">Lote</th>
+              <th className="px-2 py-2.5 text-left font-medium whitespace-nowrap">Vencimento</th>
+              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Goi. SIAC</th>
+              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Goi. Vellozia</th>
+              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Diferença</th>
               {displayFiliais.map(f => (
-                <th key={f} className="px-4 py-3 text-right font-medium whitespace-nowrap">{f}</th>
+                <th key={f} className="px-2 py-2.5 text-right font-medium whitespace-nowrap">{f}</th>
               ))}
-              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Total Vellozia</th>
-              <th className="px-4 py-3 text-center font-medium">Status</th>
+              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Total Vell.</th>
+              <th className="px-2 py-2.5 text-center font-medium">OK</th>
             </tr>
           </thead>
           <tbody>
@@ -220,34 +220,34 @@ export default function EstoqueConsolidado() {
               const diferenca = item.estoqueGoiania - goianiaVellozia
               return (
                 <tr key={i} className={item.divergencia ? 'bg-red-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-2">
-                    <div className="font-medium text-gray-800 truncate max-w-xs">{item.descricao}</div>
-                    <div className="text-xs text-gray-400 font-mono">Grupo {item.grupoProduto} · SIAC {item.idSiac}</div>
+                  <td className="px-3 py-1.5 max-w-[180px]">
+                    <div className="font-medium text-gray-800 truncate">{item.descricao}</div>
+                    <div className="text-gray-400 font-mono" style={{ fontSize: '10px' }}>G{item.grupoProduto}·S{item.idSiac}</div>
                   </td>
-                  <td className="px-4 py-2 text-gray-600 font-mono text-xs">{item.lote}</td>
-                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{item.vencimento}</td>
-                  <td className="px-4 py-2 text-right font-medium text-blue-700">
+                  <td className="px-2 py-1.5 text-gray-600 font-mono whitespace-nowrap">{item.lote}</td>
+                  <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{item.vencimento}</td>
+                  <td className="px-2 py-1.5 text-right font-medium text-blue-700 whitespace-nowrap">
                     {item.estoqueGoiania.toLocaleString('pt-BR')}
                   </td>
-                  <td className="px-4 py-2 text-right font-medium text-green-700">
+                  <td className="px-2 py-1.5 text-right font-medium text-green-700 whitespace-nowrap">
                     {goianiaVellozia.toLocaleString('pt-BR')}
                   </td>
-                  <td className={`px-4 py-2 text-right font-bold ${diferenca === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <td className={`px-2 py-1.5 text-right font-bold whitespace-nowrap ${diferenca === 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {diferenca > 0 ? '+' : ''}{diferenca.toLocaleString('pt-BR')}
                   </td>
                   {displayFiliais.map(f => (
-                    <td key={f} className="px-4 py-2 text-right text-gray-700">
+                    <td key={f} className="px-2 py-1.5 text-right text-gray-700 whitespace-nowrap">
                       {(item.filiais[f] ?? 0).toLocaleString('pt-BR')}
                     </td>
                   ))}
-                  <td className="px-4 py-2 text-right font-medium text-gray-800">
+                  <td className="px-2 py-1.5 text-right font-medium text-gray-800 whitespace-nowrap">
                     {item.totalVellozia.toLocaleString('pt-BR')}
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-2 py-1.5 text-center">
                     {item.divergencia ? (
-                      <AlertTriangle size={16} className="text-red-500 inline" />
+                      <AlertTriangle size={13} className="text-red-500 inline" />
                     ) : (
-                      <CheckCircle2 size={16} className="text-green-500 inline" />
+                      <CheckCircle2 size={13} className="text-green-500 inline" />
                     )}
                   </td>
                 </tr>

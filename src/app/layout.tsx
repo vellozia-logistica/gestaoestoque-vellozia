@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Gestão de Estoque - Vellozia',
   description: 'Sistema de gestão e conciliação de estoques SIAC x Vellozia',
+  icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

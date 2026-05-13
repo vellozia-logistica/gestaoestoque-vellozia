@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { AppState, SiacItem, VelloziaItem, IdProdutoGrupo, RelacionamentoSiacVellozia, Inconsistencia, User } from '@/types'
+import { AppState, SiacItem, VelloziaItem, IdProdutoGrupo, RelacionamentoSiacVellozia, Inconsistencia, User, SidebarConfig } from '@/types'
+
+const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
+  ordem: ['/', 'Importar Arquivos', '/relacionamentos', '/estoque', '/admin/usuarios', '/inconsistencias'],
+  pastas: [],
+  itemPasta: {},
+}
 
 export const useStore = create<AppState>()(
   persist(
@@ -29,6 +35,8 @@ export const useStore = create<AppState>()(
       clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') =>
         set(s => ({ inconsistencias: arquivo ? s.inconsistencias.filter(i => i.arquivo !== arquivo) : [] })),
 
+      sidebarConfig: DEFAULT_SIDEBAR_CONFIG,
+      setSidebarConfig: (config: SidebarConfig) => set({ sidebarConfig: config }),
       setSidebarCollapsed: (v: boolean) => set({ sidebarCollapsed: v }),
       setCurrentUser: (user: User | null) => set({ currentUser: user }),
       setUsers: (users: User[]) => set({ users }),

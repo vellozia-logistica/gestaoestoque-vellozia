@@ -1,14 +1,16 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { User, UserRole } from '@/types'
 import { hashPassword, DEFAULT_HASH_MARKER, ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS } from '@/lib/auth'
-import { Plus, Trash2, KeyRound, Shield, X, Info } from 'lucide-react'
+import { Plus, Trash2, KeyRound, Shield, X, Info, RotateCcw } from 'lucide-react'
 
 const EMPTY_FORM = { email: '', username: '', role: 'usuario' as UserRole }
 
 export default function GestaoUsuarios() {
-  const { users, currentUser, addUser, updateUser, deleteUser } = useStore()
+  const { users, currentUser, addUser, updateUser, deleteUser, setUsers, setCurrentUser } = useStore()
+  const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
@@ -44,6 +46,13 @@ export default function GestaoUsuarios() {
     }
   }
 
+  const handleResetAll = () => {
+    if (!confirm('Isso vai apagar TODOS os usuários e deslogar. O sistema voltará ao estado inicial com o admin padrão. Continuar?')) return
+    setUsers([])
+    setCurrentUser(null)
+    router.push('/login')
+  }
+
   const handleDelete = (id: string) => {
     if (id === currentUser?.id) return
     const admins = users.filter(u => u.role === 'administrador')
@@ -62,14 +71,24 @@ export default function GestaoUsuarios() {
           <h1 className="text-2xl font-bold text-gray-800">Gestão de Usuários</h1>
           <p className="text-gray-500 mt-1">{users.length} usuário(s) cadastrado(s)</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
-          style={{ backgroundColor: '#4f2e87' }}
-        >
-          {showForm ? <X size={15} /> : <Plus size={15} />}
-          {showForm ? 'Cancelar' : 'Novo usuário'}
-        </button>
+        <div className="flex gap-2">
+          {currentUser?.role === 'administrador' && (
+            <button
+              onClick={handleResetAll}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50"
+            >
+              <RotateCcw size={14} /> Resetar tudo
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
+            style={{ backgroundColor: '#4f2e87' }}
+          >
+            {showForm ? <X size={15} /> : <Plus size={15} />}
+            {showForm ? 'Cancelar' : 'Novo usuário'}
+          </button>
+        </div>
       </div>
 
       {/* Níveis de acesso — info */}

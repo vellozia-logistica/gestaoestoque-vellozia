@@ -60,6 +60,17 @@ export interface Inconsistencia {
   linhasContexto?: ContextoLinha[]
 }
 
+export interface SidebarPasta {
+  id: string
+  label: string
+}
+
+export interface SidebarConfig {
+  ordem: string[]                   // item IDs e "pasta:id" misturados em ordem
+  pastas: SidebarPasta[]
+  itemPasta: Record<string, string> // itemId → pastaId
+}
+
 export type UserRole = 'usuario' | 'desenvolvedor' | 'administrador'
 
 export interface User {
@@ -92,6 +103,8 @@ export interface AppState {
   resolveInconsistencia: (id: string) => void
   clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') => void
   setSidebarCollapsed: (v: boolean) => void
+  sidebarConfig: SidebarConfig
+  setSidebarConfig: (config: SidebarConfig) => void
   setCurrentUser: (user: User | null) => void
   setUsers: (users: User[]) => void
   addUser: (user: User) => void
