@@ -10,7 +10,7 @@ import Link from 'next/link'
 const EMPTY: RelacionamentoSiacVellozia = { grupoProduto: 0, idSiac: 0, descricaoVellozia: '' }
 
 export default function GerenciarRelacionamento() {
-  const { relacionamentos, setRelacionamentos, addInconsistencias, clearInconsistencias } = useStore()
+  const { relacionamentos, setRelacionamentos, addInconsistencias, clearInconsistencias, setImportadoEmRelacionamento } = useStore()
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [importBanner, setImportBanner] = useState<{ ok: number; erros: number } | null>(null)
@@ -34,6 +34,7 @@ export default function GerenciarRelacionamento() {
     setRelacionamentos(items)
     if (inconsistencias.length > 0) addInconsistencias(inconsistencias)
     setImportBanner({ ok: items.length, erros: inconsistencias.length })
+    setImportadoEmRelacionamento(new Date().toISOString())
     setShowUpload(false)
   }
 

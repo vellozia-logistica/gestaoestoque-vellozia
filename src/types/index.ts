@@ -92,6 +92,10 @@ export interface AppState {
   sidebarCollapsed: boolean
   users: User[]
   currentUser: User | null
+  importadoEmSiac: string | null
+  importadoEmVellozia: string | null
+  importadoEmRelacionamento: string | null
+  importadoEmIdProduto: string | null
   setSiacItems: (items: SiacItem[]) => void
   addSiacItem: (item: SiacItem) => void
   setVelloziaItems: (items: VelloziaItem[]) => void
@@ -110,4 +114,8 @@ export interface AppState {
   addUser: (user: User) => void
   updateUser: (id: string, updates: Partial<User>) => void
   deleteUser: (id: string) => void
+  setImportadoEmSiac: (v: string | null) => void
+  setImportadoEmVellozia: (v: string | null) => void
+  setImportadoEmRelacionamento: (v: string | null) => void
+  setImportadoEmIdProduto: (v: string | null) => void
 }

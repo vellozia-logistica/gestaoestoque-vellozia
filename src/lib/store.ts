@@ -43,6 +43,15 @@ export const useStore = create<AppState>()(
       clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') =>
         set(s => ({ inconsistencias: arquivo ? s.inconsistencias.filter(i => i.arquivo !== arquivo) : [] })),
 
+      importadoEmSiac: null,
+      importadoEmVellozia: null,
+      importadoEmRelacionamento: null,
+      importadoEmIdProduto: null,
+      setImportadoEmSiac: (v) => set({ importadoEmSiac: v }),
+      setImportadoEmVellozia: (v) => set({ importadoEmVellozia: v }),
+      setImportadoEmRelacionamento: (v) => set({ importadoEmRelacionamento: v }),
+      setImportadoEmIdProduto: (v) => set({ importadoEmIdProduto: v }),
+
       sidebarConfig: DEFAULT_SIDEBAR_CONFIG,
       setSidebarConfig: (config: SidebarConfig) => set({ sidebarConfig: config }),
       setSidebarCollapsed: (v: boolean) => set({ sidebarCollapsed: v }),

@@ -6,7 +6,7 @@ import { FileText, AlertCircle, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ImportarVellozia() {
-  const { setVelloziaItems, velloziaItems, addInconsistencias, clearInconsistencias, inconsistencias } = useStore()
+  const { setVelloziaItems, velloziaItems, addInconsistencias, clearInconsistencias, inconsistencias, setImportadoEmVellozia } = useStore()
 
   const pendentes = inconsistencias.filter(i => i.arquivo === 'vellozia' && !i.resolvido).length
 
@@ -15,6 +15,7 @@ export default function ImportarVellozia() {
     setVelloziaItems(items)
     clearInconsistencias('vellozia')
     if (found.length > 0) addInconsistencias(found)
+    setImportadoEmVellozia(new Date().toISOString())
   }
 
   const filiais = [...new Set(velloziaItems.map(i => i.empresa))].sort()

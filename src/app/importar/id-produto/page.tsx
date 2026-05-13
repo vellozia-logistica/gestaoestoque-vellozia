@@ -9,7 +9,7 @@ import FileUpload from '@/components/ui/FileUpload'
 const EMPTY: IdProdutoGrupo = { id: 0, descricaoProduto: '', grupoProdutoId: 0 }
 
 export default function GerenciarIdProduto() {
-  const { idProdutoGrupo, setIdProdutoGrupo } = useStore()
+  const { idProdutoGrupo, setIdProdutoGrupo, setImportadoEmIdProduto } = useStore()
   const [search, setSearch] = useState('')
   const [filterGrupo, setFilterGrupo] = useState('')
   const [showUpload, setShowUpload] = useState(false)
@@ -32,6 +32,7 @@ export default function GerenciarIdProduto() {
   const handleParse = (content: string) => {
     const items = parseIdProdutoGrupoCSV(content)
     setIdProdutoGrupo(items)
+    setImportadoEmIdProduto(new Date().toISOString())
     setShowUpload(false)
   }
 

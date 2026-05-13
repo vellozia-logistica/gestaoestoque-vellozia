@@ -3,11 +3,20 @@ import { useStore } from '@/lib/store'
 import { buildEstoqueConsolidado, getFiliais } from '@/lib/estoque'
 import { downloadExcel, downloadJSON } from '@/lib/excel'
 import { useState, useMemo } from 'react'
-import { Search, AlertCircle, AlertTriangle, CheckCircle2, FileDown, FileJson } from 'lucide-react'
+import { Search, AlertCircle, AlertTriangle, CheckCircle2, FileDown, FileJson, Clock } from 'lucide-react'
 import Link from 'next/link'
 
+function fmtTs(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 export default function EstoqueConsolidado() {
-  const { siacItems, velloziaItems, idProdutoGrupo, relacionamentos } = useStore()
+  const { siacItems, velloziaItems, idProdutoGrupo, relacionamentos,
+    importadoEmSiac, importadoEmVellozia, importadoEmRelacionamento, importadoEmIdProduto } = useStore()
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'todos' | 'divergentes'>('todos')
   const [filialExport, setFilialExport] = useState<string>('todas')
@@ -117,6 +126,22 @@ export default function EstoqueConsolidado() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Estoque Consolidado</h1>
         <p className="text-gray-500 mt-1">{estoque.length} registros · todas as filiais + Goiânia (SIAC)</p>
+
+        {/* Timestamps de importação */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {([
+            { label: 'SIAC (Goiânia)', ts: importadoEmSiac },
+            { label: 'Vellozia (filiais)', ts: importadoEmVellozia },
+            { label: 'Relacionamento', ts: importadoEmRelacionamento },
+            { label: 'ID × Grupo', ts: importadoEmIdProduto },
+          ] as const).map(({ label, ts }) => (
+            <div key={label} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs ${ts ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+              <Clock size={11} className={ts ? 'text-green-500' : 'text-gray-300'} />
+              <span className="font-medium">{label}:</span>
+              <span className="font-mono">{fmtTs(ts)}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Toolbar */}

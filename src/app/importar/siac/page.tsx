@@ -6,7 +6,7 @@ import { AlertCircle, AlertTriangle, FileText } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ImportarSiac() {
-  const { setSiacItems, siacItems, addInconsistencias, clearInconsistencias, inconsistencias } = useStore()
+  const { setSiacItems, siacItems, addInconsistencias, clearInconsistencias, inconsistencias, setImportadoEmSiac } = useStore()
 
   const pendentes = inconsistencias.filter(i => i.arquivo === 'siac' && !i.resolvido).length
 
@@ -15,6 +15,7 @@ export default function ImportarSiac() {
     setSiacItems(items)
     clearInconsistencias('siac')
     if (found.length > 0) addInconsistencias(found)
+    setImportadoEmSiac(new Date().toISOString())
   }
 
   return (
