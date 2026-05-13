@@ -25,6 +25,11 @@ export default function EstoqueConsolidado() {
   const goianiaKey = filiais.find(f => f.toLowerCase().includes('goi')) ?? ''
   const outrasFiliais = filiais.filter(f => !f.toLowerCase().includes('goi'))
 
+  // Filiais exibidas na tabela e no export (respeitam o seletor)
+  const displayFiliais = filialExport === 'todas'
+    ? outrasFiliais
+    : outrasFiliais.filter(f => f === filialExport)
+
   const divergentes = estoque.filter(e => e.divergencia).length
 
   const filtered = useMemo(() => {
@@ -51,11 +56,10 @@ export default function EstoqueConsolidado() {
   }, [filtered, filialExport])
 
   const handleExportExcel = () => {
-    const exportFiliais = filialExport === 'todas' ? outrasFiliais : [filialExport].filter(f => !f.toLowerCase().includes('goi'))
     const headers = [
       'Produto', 'Grupo', 'ID SIAC', 'Lote', 'Vencimento',
       'Goiânia (SIAC)', 'Goiânia (Vellozia)', 'Diferença',
-      ...exportFiliais,
+      ...displayFiliais,
       'Total Vellozia', 'Divergência',
     ]
     const rows = exportData.map(e => {
@@ -63,7 +67,7 @@ export default function EstoqueConsolidado() {
       return [
         e.descricao, e.grupoProduto, e.idSiac, e.lote, e.vencimento,
         e.estoqueGoiania, gv, e.estoqueGoiania - gv,
-        ...exportFiliais.map(f => e.filiais[f] ?? 0),
+        ...displayFiliais.map(f => e.filiais[f] ?? 0),
         e.totalVellozia, e.divergencia ? 'Sim' : 'Não',
       ]
     })
@@ -166,7 +170,7 @@ export default function EstoqueConsolidado() {
             onChange={e => setFilialExport(e.target.value)}
             className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white text-gray-700"
           >
-            <option value="todas">Todas as filiais</option>
+            <option value="todas">Todas as filiais (visualizar todas)</option>
             {filiais.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
 
@@ -203,7 +207,7 @@ export default function EstoqueConsolidado() {
               <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Goiânia (SIAC)</th>
               <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Goiânia (Vellozia)</th>
               <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Diferença</th>
-              {outrasFiliais.map(f => (
+              {displayFiliais.map(f => (
                 <th key={f} className="px-4 py-3 text-right font-medium whitespace-nowrap">{f}</th>
               ))}
               <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Total Vellozia</th>
@@ -231,7 +235,7 @@ export default function EstoqueConsolidado() {
                   <td className={`px-4 py-2 text-right font-bold ${diferenca === 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {diferenca > 0 ? '+' : ''}{diferenca.toLocaleString('pt-BR')}
                   </td>
-                  {outrasFiliais.map(f => (
+                  {displayFiliais.map(f => (
                     <td key={f} className="px-4 py-2 text-right text-gray-700">
                       {(item.filiais[f] ?? 0).toLocaleString('pt-BR')}
                     </td>
