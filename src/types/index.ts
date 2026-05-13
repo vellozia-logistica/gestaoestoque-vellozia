@@ -51,7 +51,7 @@ export interface ContextoLinha {
 
 export interface Inconsistencia {
   id: string
-  arquivo: 'siac' | 'vellozia'
+  arquivo: 'siac' | 'vellozia' | 'relacionamento'
   linhaNumero: number
   conteudo: string
   motivo: string
@@ -87,9 +87,10 @@ export interface AppState {
   addVelloziaItem: (item: VelloziaItem) => void
   setIdProdutoGrupo: (items: IdProdutoGrupo[]) => void
   setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => void
+  addRelacionamento: (item: RelacionamentoSiacVellozia) => void
   addInconsistencias: (items: Inconsistencia[]) => void
   resolveInconsistencia: (id: string) => void
-  clearInconsistencias: (arquivo?: 'siac' | 'vellozia') => void
+  clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') => void
   setSidebarCollapsed: (v: boolean) => void
   setCurrentUser: (user: User | null) => void
   setUsers: (users: User[]) => void

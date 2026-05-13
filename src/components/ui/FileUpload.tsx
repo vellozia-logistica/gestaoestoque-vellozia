@@ -24,7 +24,14 @@ export default function FileUpload({ label, description, accept = '.csv,.txt', o
 
   const handleFile = useCallback(async (file: File) => {
     try {
-      const content = await file.text()
+      const buffer = await file.arrayBuffer()
+      let content: string
+      try {
+        // tenta UTF-8 estrito; falha se houver bytes inválidos (ex: Windows-1252)
+        content = new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+      } catch {
+        content = new TextDecoder('windows-1252').decode(buffer)
+      }
       await onParse(content, file.name)
       setFileName(file.name)
       setStatus('success')

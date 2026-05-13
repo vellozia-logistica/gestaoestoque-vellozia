@@ -3,12 +3,13 @@ import { useStore } from '@/lib/store'
 import { useState } from 'react'
 import { CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import Link from 'next/link'
-import { SiacItem, VelloziaItem, ContextoLinha } from '@/types'
+import { SiacItem, VelloziaItem, RelacionamentoSiacVellozia, ContextoLinha } from '@/types'
 
-const ARQUIVO_LABEL: Record<string, string> = { siac: 'SIAC', vellozia: 'Vellozia' }
+const ARQUIVO_LABEL: Record<string, string> = { siac: 'SIAC', vellozia: 'Vellozia', relacionamento: 'Relacionamento' }
 const ARQUIVO_COLOR: Record<string, string> = {
   siac: 'bg-blue-100 text-blue-700',
   vellozia: 'bg-green-100 text-green-700',
+  relacionamento: 'bg-orange-100 text-orange-700',
 }
 
 function ContextoViewer({ linhas }: { linhas: ContextoLinha[] }) {
@@ -178,8 +179,72 @@ function VelloziaForm({ formData, onSave, onCancel }: {
   )
 }
 
+function RelacionamentoForm({ formData, onSave, onCancel }: {
+  formData: Record<string, string | number>
+  onSave: (item: RelacionamentoSiacVellozia) => void
+  onCancel: () => void
+}) {
+  const [f, setF] = useState<RelacionamentoSiacVellozia>({
+    grupoProduto: Number(formData['grupoProduto'] ?? 0),
+    idSiac: Number(formData['idSiac'] ?? 0),
+    descricaoVellozia: String(formData['descricaoVellozia'] ?? ''),
+  })
+  const valid = f.grupoProduto > 0 && f.idSiac > 0
+
+  return (
+    <div className="mt-5 border border-orange-200 rounded-xl bg-orange-50 p-5">
+      <p className="text-xs font-semibold text-orange-700 mb-4 uppercase tracking-wide">Preencher dados do Relacionamento</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">Grupo Produto</label>
+          <input
+            type="number"
+            value={f.grupoProduto || ''}
+            onChange={e => setF(prev => ({ ...prev, grupoProduto: parseInt(e.target.value) || 0 }))}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">ID SIAC</label>
+          <input
+            type="number"
+            value={f.idSiac || ''}
+            onChange={e => setF(prev => ({ ...prev, idSiac: parseInt(e.target.value) || 0 }))}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">Descrição Vellozia</label>
+          <input
+            type="text"
+            value={f.descricaoVellozia}
+            onChange={e => setF(prev => ({ ...prev, descricaoVellozia: e.target.value }))}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+          />
+        </div>
+      </div>
+      <div className="flex gap-2 mt-5">
+        <button
+          onClick={() => valid && onSave(f)}
+          disabled={!valid}
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-40"
+          style={{ backgroundColor: '#4f2e87' }}
+        >
+          <Check size={14} /> Salvar e avançar
+        </button>
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
+        >
+          <X size={14} /> Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function InconsistenciasPage() {
-  const { inconsistencias, resolveInconsistencia, clearInconsistencias, addSiacItem, addVelloziaItem } = useStore()
+  const { inconsistencias, resolveInconsistencia, clearInconsistencias, addSiacItem, addVelloziaItem, addRelacionamento } = useStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
 
@@ -197,6 +262,12 @@ export default function InconsistenciasPage() {
 
   const handleSaveVellozia = (item: VelloziaItem) => {
     addVelloziaItem(item)
+    resolveInconsistencia(current.id)
+    setEditingId(null)
+  }
+
+  const handleSaveRelacionamento = (item: RelacionamentoSiacVellozia) => {
+    addRelacionamento(item)
     resolveInconsistencia(current.id)
     setEditingId(null)
   }
@@ -322,10 +393,16 @@ export default function InconsistenciasPage() {
                     onSave={handleSaveSiac}
                     onCancel={() => setEditingId(null)}
                   />
-                ) : (
+                ) : current.arquivo === 'vellozia' ? (
                   <VelloziaForm
                     formData={current.formData || {}}
                     onSave={handleSaveVellozia}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
+                  <RelacionamentoForm
+                    formData={current.formData || {}}
+                    onSave={handleSaveRelacionamento}
                     onCancel={() => setEditingId(null)}
                   />
                 )

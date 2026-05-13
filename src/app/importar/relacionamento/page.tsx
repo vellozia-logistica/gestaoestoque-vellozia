@@ -3,15 +3,17 @@ import { useState, useMemo } from 'react'
 import { useStore } from '@/lib/store'
 import { parseRelacionamentoCSV } from '@/lib/parsers/relacionamento'
 import { RelacionamentoSiacVellozia } from '@/types'
-import { Plus, Pencil, Trash2, Check, X, Search, RotateCcw, Upload, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X, Search, RotateCcw, Upload, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
 import FileUpload from '@/components/ui/FileUpload'
+import Link from 'next/link'
 
 const EMPTY: RelacionamentoSiacVellozia = { grupoProduto: 0, idSiac: 0, descricaoVellozia: '' }
 
 export default function GerenciarRelacionamento() {
-  const { relacionamentos, setRelacionamentos } = useStore()
+  const { relacionamentos, setRelacionamentos, addInconsistencias } = useStore()
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
+  const [importBanner, setImportBanner] = useState<{ ok: number; erros: number } | null>(null)
   const [editId, setEditId] = useState<number | null>(null)
   const [editData, setEditData] = useState<RelacionamentoSiacVellozia>(EMPTY)
   const [addMode, setAddMode] = useState(false)
@@ -28,8 +30,10 @@ export default function GerenciarRelacionamento() {
   }, [relacionamentos, search])
 
   const handleParse = (content: string) => {
-    const items = parseRelacionamentoCSV(content)
+    const { items, inconsistencias } = parseRelacionamentoCSV(content)
     setRelacionamentos(items)
+    if (inconsistencias.length > 0) addInconsistencias(inconsistencias)
+    setImportBanner({ ok: items.length, erros: inconsistencias.length })
     setShowUpload(false)
   }
 
@@ -99,6 +103,19 @@ export default function GerenciarRelacionamento() {
               ],
             }}
           />
+        </div>
+      )}
+
+      {importBanner && importBanner.erros > 0 && (
+        <div className="mb-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          <AlertTriangle size={17} className="shrink-0 mt-0.5 text-amber-500" />
+          <div>
+            <p className="font-medium">{importBanner.ok} registro(s) importado(s) · {importBanner.erros} inconsistência(s) encontrada(s)</p>
+            <p className="mt-0.5">As linhas com campo em branco foram enviadas para tratamento manual.</p>
+            <Link href="/inconsistencias" className="mt-1 inline-block text-purple-700 underline font-medium">
+              Ir para Inconsistências →
+            </Link>
+          </div>
         </div>
       )}
 

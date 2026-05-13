@@ -20,12 +20,13 @@ export const useStore = create<AppState>()(
       addVelloziaItem: (item: VelloziaItem) => set(s => ({ velloziaItems: [...s.velloziaItems, item] })),
       setIdProdutoGrupo: (items: IdProdutoGrupo[]) => set({ idProdutoGrupo: items }),
       setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => set({ relacionamentos: items }),
+      addRelacionamento: (item: RelacionamentoSiacVellozia) => set(s => ({ relacionamentos: [...s.relacionamentos, item] })),
 
       addInconsistencias: (items: Inconsistencia[]) =>
         set(s => ({ inconsistencias: [...s.inconsistencias.filter(i => i.arquivo !== items[0]?.arquivo), ...items] })),
       resolveInconsistencia: (id: string) =>
         set(s => ({ inconsistencias: s.inconsistencias.map(i => i.id === id ? { ...i, resolvido: true } : i) })),
-      clearInconsistencias: (arquivo?: 'siac' | 'vellozia') =>
+      clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') =>
         set(s => ({ inconsistencias: arquivo ? s.inconsistencias.filter(i => i.arquivo !== arquivo) : [] })),
 
       setSidebarCollapsed: (v: boolean) => set({ sidebarCollapsed: v }),
