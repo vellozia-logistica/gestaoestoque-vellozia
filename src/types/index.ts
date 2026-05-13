@@ -48,8 +48,10 @@ export interface AppState {
   velloziaItems: VelloziaItem[]
   idProdutoGrupo: IdProdutoGrupo[]
   relacionamentos: RelacionamentoSiacVellozia[]
+  sidebarCollapsed: boolean
   setSiacItems: (items: SiacItem[]) => void
   setVelloziaItems: (items: VelloziaItem[]) => void
   setIdProdutoGrupo: (items: IdProdutoGrupo[]) => void
   setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => void
+  setSidebarCollapsed: (v: boolean) => void
 }

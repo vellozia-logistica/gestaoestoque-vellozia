@@ -1,14 +1,16 @@
 'use client'
 import { useStore } from '@/lib/store'
 import { buildEstoqueConsolidado, getFiliais } from '@/lib/estoque'
+import { downloadExcel, downloadJSON } from '@/lib/excel'
 import { useState, useMemo } from 'react'
-import { Search, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Search, AlertCircle, AlertTriangle, CheckCircle2, FileDown, FileJson } from 'lucide-react'
 import Link from 'next/link'
 
 export default function EstoqueConsolidado() {
   const { siacItems, velloziaItems, idProdutoGrupo, relacionamentos } = useStore()
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'todos' | 'divergentes'>('todos')
+  const [filialExport, setFilialExport] = useState<string>('todas')
 
   const allLoaded = siacItems.length > 0 && velloziaItems.length > 0 && idProdutoGrupo.length > 0 && relacionamentos.length > 0
 
@@ -18,23 +20,48 @@ export default function EstoqueConsolidado() {
   )
 
   const filiais = useMemo(() => getFiliais(velloziaItems), [velloziaItems])
-
   const divergentes = estoque.filter(e => e.divergencia).length
 
   const filtered = useMemo(() => {
     let list = filtro === 'divergentes' ? estoque.filter(e => e.divergencia) : estoque
     if (search) {
       const q = search.toLowerCase()
-      list = list.filter(
-        e =>
-          e.descricao.toLowerCase().includes(q) ||
-          String(e.idSiac).includes(q) ||
-          String(e.grupoProduto).includes(q) ||
-          e.lote.toLowerCase().includes(q)
+      list = list.filter(e =>
+        e.descricao.toLowerCase().includes(q) ||
+        String(e.idSiac).includes(q) ||
+        String(e.grupoProduto).includes(q) ||
+        e.lote.toLowerCase().includes(q)
       )
     }
     return list
   }, [estoque, filtro, search])
+
+  const exportData = useMemo(() => {
+    if (filialExport === 'todas') return filtered
+    return filtered.map(e => ({
+      ...e,
+      filiais: { [filialExport]: e.filiais[filialExport] ?? 0 },
+      totalVellozia: e.filiais[filialExport] ?? 0,
+    }))
+  }, [filtered, filialExport])
+
+  const handleExportExcel = () => {
+    const headers = ['Produto', 'Grupo', 'ID SIAC', 'Lote', 'Vencimento', 'Goiânia (SIAC)',
+      ...(filialExport === 'todas' ? filiais : [filialExport]),
+      'Total Vellozia', 'Divergência']
+    const rows = exportData.map(e => [
+      e.descricao, e.grupoProduto, e.idSiac, e.lote, e.vencimento, e.estoqueGoiania,
+      ...(filialExport === 'todas' ? filiais : [filialExport]).map(f => e.filiais[f] ?? 0),
+      e.totalVellozia, e.divergencia ? 'Sim' : 'Não',
+    ])
+    const label = filialExport === 'todas' ? 'todas_filiais' : filialExport.toLowerCase().replace(/\s+/g, '_')
+    downloadExcel([headers, ...rows], `estoque_consolidado_${label}.xlsx`, 'Estoque Consolidado')
+  }
+
+  const handleExportJSON = () => {
+    const label = filialExport === 'todas' ? 'todas_filiais' : filialExport.toLowerCase().replace(/\s+/g, '_')
+    downloadJSON(exportData, `estoque_consolidado_${label}.json`)
+  }
 
   if (!allLoaded) {
     return (
@@ -56,11 +83,9 @@ export default function EstoqueConsolidado() {
               ].map(item => (
                 <li key={item.href} className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${item.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
-                  {item.ok ? (
-                    <span className="text-green-700">{item.label}</span>
-                  ) : (
-                    <Link href={item.href} className="underline text-yellow-800">{item.label}</Link>
-                  )}
+                  {item.ok
+                    ? <span className="text-green-700">{item.label}</span>
+                    : <Link href={item.href} className="underline text-yellow-800">{item.label}</Link>}
                 </li>
               ))}
             </ul>
@@ -74,50 +99,88 @@ export default function EstoqueConsolidado() {
     <div className="p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Estoque Consolidado</h1>
-        <p className="text-gray-500 mt-1">Todos os estoques Vellozia + Goiânia (SIAC) · {estoque.length} registros</p>
+        <p className="text-gray-500 mt-1">{estoque.length} registros · todas as filiais + Goiânia (SIAC)</p>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-5">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        {/* Status badge */}
         {divergentes > 0 ? (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            <AlertTriangle size={15} />
-            <span><strong>{divergentes}</strong> divergências encontradas</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <AlertTriangle size={14} />
+            <span><strong>{divergentes}</strong> divergências</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-            <CheckCircle2 size={15} />
-            <span>Nenhuma divergência</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <CheckCircle2 size={14} />
+            <span>Sem divergências</span>
           </div>
         )}
 
+        {/* Filtro todos / divergentes */}
         <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
           <button
             onClick={() => setFiltro('todos')}
-            className={`px-4 py-2 ${filtro === 'todos' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            className={`px-3 py-1.5 ${filtro === 'todos' ? 'text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            style={filtro === 'todos' ? { backgroundColor: '#4f2e87' } : {}}
           >
             Todos ({estoque.length})
           </button>
           <button
             onClick={() => setFiltro('divergentes')}
-            className={`px-4 py-2 border-l border-gray-200 ${filtro === 'divergentes' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            className={`px-3 py-1.5 border-l border-gray-200 ${filtro === 'divergentes' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
           >
             Divergentes ({divergentes})
           </button>
         </div>
 
-        <div className="relative ml-auto w-72">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        {/* Search */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar produto, lote, código…"
+            placeholder="Buscar produto, lote…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 w-56"
           />
+        </div>
+
+        {/* Export controls — pushed right */}
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            value={filialExport}
+            onChange={e => setFilialExport(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white text-gray-700"
+          >
+            <option value="todas">Todas as filiais</option>
+            {filiais.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ backgroundColor: '#16a34a' }}
+            title="Exportar para Excel"
+          >
+            <FileDown size={15} />
+            Excel
+          </button>
+
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ backgroundColor: '#2563eb' }}
+            title="Exportar para JSON"
+          >
+            <FileJson size={15} />
+            JSON
+          </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200">
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr style={{ backgroundColor: '#4f2e87' }} className="text-white">
@@ -134,28 +197,24 @@ export default function EstoqueConsolidado() {
           </thead>
           <tbody>
             {filtered.map((item, i) => {
-              const goianiaVellozia = item.filiais['Goiânia'] ?? item.filiais['GOIANIA'] ?? item.filiais['Goiania'] ?? 0
+              const goianiaVellozia = Object.entries(item.filiais).find(([k]) =>
+                k.toLowerCase().includes('goi')
+              )?.[1] ?? 0
               return (
-                <tr key={i} className={`${item.divergencia ? 'bg-red-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                <tr key={i} className={item.divergencia ? 'bg-red-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   <td className="px-4 py-2">
                     <div className="font-medium text-gray-800 truncate max-w-xs">{item.descricao}</div>
-                    <div className="text-xs text-gray-400 font-mono">
-                      Grupo {item.grupoProduto} · SIAC {item.idSiac}
-                    </div>
+                    <div className="text-xs text-gray-400 font-mono">Grupo {item.grupoProduto} · SIAC {item.idSiac}</div>
                   </td>
                   <td className="px-4 py-2 text-gray-600 font-mono text-xs">{item.lote}</td>
                   <td className="px-4 py-2 text-gray-600">{item.vencimento}</td>
-                  <td className="px-4 py-2 text-right font-medium text-blue-700">
-                    {item.estoqueGoiania.toLocaleString('pt-BR')}
-                  </td>
+                  <td className="px-4 py-2 text-right font-medium text-blue-700">{item.estoqueGoiania.toLocaleString('pt-BR')}</td>
                   {filiais.map(f => (
                     <td key={f} className="px-4 py-2 text-right text-gray-700">
                       {(item.filiais[f] ?? 0).toLocaleString('pt-BR')}
                     </td>
                   ))}
-                  <td className="px-4 py-2 text-right font-medium text-gray-800">
-                    {item.totalVellozia.toLocaleString('pt-BR')}
-                  </td>
+                  <td className="px-4 py-2 text-right font-medium text-gray-800">{item.totalVellozia.toLocaleString('pt-BR')}</td>
                   <td className="px-4 py-2 text-center">
                     {item.divergencia ? (
                       <span title={`SIAC: ${item.estoqueGoiania} · Vellozia Goiânia: ${goianiaVellozia}`}>
@@ -180,7 +239,8 @@ export default function EstoqueConsolidado() {
 
       {filtered.length > 0 && (
         <p className="text-xs text-gray-400 mt-2 text-right">
-          {filtered.length} de {estoque.length} registros
+          Exibindo {filtered.length} de {estoque.length} registros
+          {filialExport !== 'todas' && ` · exportação filtrada: ${filialExport}`}
         </p>
       )}
     </div>

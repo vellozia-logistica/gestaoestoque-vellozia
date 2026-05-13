@@ -1,13 +1,20 @@
 'use client'
 import { useCallback, useState } from 'react'
 import { Upload, CheckCircle, AlertCircle, Download } from 'lucide-react'
+import { downloadExcel } from '@/lib/excel'
+
+interface TemplateSheet {
+  rows: (string | number)[][]
+  sheetName?: string
+  filename: string
+}
 
 interface FileUploadProps {
   label: string
   description: string
   accept?: string
   onParse: (content: string, fileName: string) => void | Promise<void>
-  template?: { content: string; filename: string }
+  template?: TemplateSheet
 }
 
 export default function FileUpload({ label, description, accept = '.csv,.txt', onParse, template }: FileUploadProps) {
@@ -38,15 +45,9 @@ export default function FileUpload({ label, description, accept = '.csv,.txt', o
     if (file) handleFile(file)
   }
 
-  const downloadTemplate = () => {
+  const handleDownloadTemplate = () => {
     if (!template) return
-    const blob = new Blob(['﻿' + template.content], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = template.filename
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadExcel(template.rows, template.filename, template.sheetName ?? 'Modelo')
   }
 
   return (
@@ -54,12 +55,12 @@ export default function FileUpload({ label, description, accept = '.csv,.txt', o
       {template && (
         <div className="flex justify-end">
           <button
-            onClick={downloadTemplate}
+            onClick={handleDownloadTemplate}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-purple-50"
             style={{ borderColor: '#c4b5fd', color: '#4f2e87' }}
           >
             <Download size={14} />
-            Baixar modelo CSV
+            Baixar modelo Excel
           </button>
         </div>
       )}
@@ -84,7 +85,6 @@ export default function FileUpload({ label, description, accept = '.csv,.txt', o
           onChange={onChange}
           className="absolute inset-0 opacity-0 cursor-pointer"
         />
-
         <div className="flex flex-col items-center gap-3">
           {status === 'success' ? (
             <CheckCircle className="text-green-500" size={40} />
@@ -93,15 +93,11 @@ export default function FileUpload({ label, description, accept = '.csv,.txt', o
           ) : (
             <Upload className="text-purple-400" size={40} />
           )}
-
           <div>
             <p className="font-semibold text-gray-700">{label}</p>
             <p className="text-sm text-gray-500 mt-1">{description}</p>
-            {fileName && (
-              <p className="text-xs text-purple-600 mt-2 font-medium">✓ {fileName}</p>
-            )}
+            {fileName && <p className="text-xs text-purple-600 mt-2 font-medium">✓ {fileName}</p>}
           </div>
-
           <span className="text-xs text-gray-400">
             {status === 'success' ? 'Clique para substituir' : 'Arraste ou clique para selecionar'}
           </span>

@@ -33,21 +33,14 @@ export default function ImportarSiac() {
         accept=".csv,.txt"
         onParse={handleParse}
         template={{
-          filename: 'modelo_estoque_siac.txt',
-          content:
-            'Relatorio de Produtos por Lote\r\n' +
-            'CNPJ: 00.000.000/0000-00   Empresa: Goiania\r\n' +
-            '================================================================================\r\n' +
-            'Codigo  Descricao                      Unid  Laboratorio\r\n' +
-            '0000001 BOTULIM 50UI CAIXA              CX    ALLERGAN\r\n' +
-            '        Lote           Vencimento   Estoque\r\n' +
-            '        01.000001-AB   31/12/2026   10\r\n' +
-            '        01.000002-CD   30/06/2026   5\r\n' +
-            '<< ESTOQUE TOTAL >>                              15\r\n' +
-            '0000002 TOXINA BOTULINICA 100UI         FR    ALLERGAN\r\n' +
-            '        Lote           Vencimento   Estoque\r\n' +
-            '        02.000001-EF   31/03/2027   8\r\n' +
-            '<< ESTOQUE TOTAL >>                              8\r\n',
+          filename: 'modelo_estoque_siac.xlsx',
+          sheetName: 'Estoque SIAC',
+          rows: [
+            ['Código', 'Descrição', 'Unidade', 'Laboratório', 'Lote', 'Vencimento', 'Estoque'],
+            ['0000001', 'BOTULIM 50UI CAIXA', 'CX', 'ALLERGAN', '01.000001-AB', '31/12/2026', 10],
+            ['0000001', 'BOTULIM 50UI CAIXA', 'CX', 'ALLERGAN', '01.000002-CD', '30/06/2026', 5],
+            ['0000002', 'TOXINA BOTULINICA 100UI', 'FR', 'ALLERGAN', '02.000001-EF', '31/03/2027', 8],
+          ],
         }}
       />
 

@@ -35,13 +35,15 @@ export default function ImportarIdProduto() {
         accept=".csv"
         onParse={handleParse}
         template={{
-          filename: 'modelo_id_produto_grupo_produto.csv',
-          content:
-            'id;descricao_produto;grupo_produto_id\r\n' +
-            '123;BOTULIM 50UI - CAIXA;1001\r\n' +
-            '124;BOTULIM 50UI - FRASCO;1001\r\n' +
-            '125;TOXINA BOTULINICA 100UI - CAIXA;1002\r\n' +
-            '126;TOXINA BOTULINICA 100UI - UNIDADE;1002\r\n',
+          filename: 'modelo_id_produto_grupo_produto.xlsx',
+          sheetName: 'ID Produto x Grupo',
+          rows: [
+            ['id', 'descricao_produto', 'grupo_produto_id'],
+            [123, 'BOTULIM 50UI - CAIXA', 1001],
+            [124, 'BOTULIM 50UI - FRASCO', 1001],
+            [125, 'TOXINA BOTULINICA 100UI - CAIXA', 1002],
+            [126, 'TOXINA BOTULINICA 100UI - UNIDADE', 1002],
+          ],
         }}
       />
 
