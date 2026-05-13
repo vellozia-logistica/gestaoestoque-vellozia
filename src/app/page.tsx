@@ -1,65 +1,144 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link'
+import { Upload, GitMerge, PackageSearch, FileText } from 'lucide-react'
+import { useStore } from '@/lib/store'
 
-export default function Home() {
+export default function Dashboard() {
+  const { siacItems, velloziaItems, idProdutoGrupo, relacionamentos } = useStore()
+
+  const cards = [
+    {
+      title: 'Estoque SIAC',
+      desc: 'Relatório de estoque de Goiânia',
+      count: siacItems.length,
+      unit: 'registros',
+      href: '/importar/siac',
+      icon: FileText,
+      color: 'bg-blue-50 text-blue-600 border-blue-200',
+    },
+    {
+      title: 'Estoque Vellozia',
+      desc: 'Relatório de todas as filiais',
+      count: velloziaItems.length,
+      unit: 'registros',
+      href: '/importar/vellozia',
+      icon: FileText,
+      color: 'bg-green-50 text-green-600 border-green-200',
+    },
+    {
+      title: 'Relacionamentos',
+      desc: 'ID Produto × Grupo × SIAC',
+      count: idProdutoGrupo.length + relacionamentos.length,
+      unit: 'mapeamentos',
+      href: '/relacionamentos',
+      icon: GitMerge,
+      color: 'bg-orange-50 text-orange-600 border-orange-200',
+    },
+    {
+      title: 'Estoque Consolidado',
+      desc: 'Visão unificada de todas as filiais',
+      count: null,
+      unit: '',
+      href: '/estoque',
+      icon: PackageSearch,
+      color: 'bg-purple-50 text-purple-600 border-purple-200',
+    },
+  ]
+
+  const allLoaded = siacItems.length > 0 && velloziaItems.length > 0 && idProdutoGrupo.length > 0 && relacionamentos.length > 0
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <p className="text-gray-500 mt-1">Gestão e conciliação de estoques SIAC × Vellozia</p>
+      </div>
+
+      {!allLoaded && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-start gap-3">
+          <Upload className="text-yellow-500 mt-0.5 shrink-0" size={18} />
+          <div>
+            <p className="text-yellow-800 font-medium text-sm">Arquivos pendentes de importação</p>
+            <p className="text-yellow-700 text-sm mt-0.5">
+              Importe os 4 arquivos CSV para habilitar o estoque consolidado.
+            </p>
+            <Link href="/importar/siac" className="text-yellow-800 underline text-sm font-medium mt-1 inline-block">
+              Ir para importação →
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        {cards.map((card) => {
+          const Icon = card.icon
+          return (
+            <Link
+              key={card.href}
+              href={card.href}
+              className={`border rounded-xl p-5 hover:shadow-md transition-shadow ${card.color}`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-semibold text-gray-800">{card.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{card.desc}</p>
+                </div>
+                <Icon size={20} />
+              </div>
+              <div className="mt-4">
+                {card.count !== null ? (
+                  <p className="text-2xl font-bold text-gray-800">
+                    {card.count.toLocaleString('pt-BR')}
+                    <span className="text-sm font-normal text-gray-500 ml-1">{card.unit}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium" style={{ color: '#4f2e87' }}>
+                    {allLoaded ? 'Ver estoque →' : 'Aguardando importação'}
+                  </p>
+                )}
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <h2 className="font-semibold text-gray-700 mb-3">Status dos Arquivos</h2>
+          <ul className="space-y-2 text-sm">
+            {[
+              { label: 'Estoque SIAC (Goiânia)', ok: siacItems.length > 0 },
+              { label: 'Estoque Vellozia (filiais)', ok: velloziaItems.length > 0 },
+              { label: 'ID Produto × Grupo Produto', ok: idProdutoGrupo.length > 0 },
+              { label: 'Relacionamento SIAC × Vellozia', ok: relacionamentos.length > 0 },
+            ].map((item) => (
+              <li key={item.label} className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${item.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={item.ok ? 'text-gray-700' : 'text-gray-400'}>{item.label}</span>
+                {item.ok && <span className="ml-auto text-green-600 text-xs">✓ Importado</span>}
+              </li>
+            ))}
+          </ul>
         </div>
-      </main>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <h2 className="font-semibold text-gray-700 mb-3">Ações Rápidas</h2>
+          <div className="space-y-2">
+            <Link href="/importar/siac" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-600">
+              <Upload size={16} className="text-purple-500" />
+              Importar Estoque SIAC
+            </Link>
+            <Link href="/importar/vellozia" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-600">
+              <Upload size={16} className="text-purple-500" />
+              Importar Estoque Vellozia
+            </Link>
+            <Link href="/estoque" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-600">
+              <PackageSearch size={16} className="text-purple-500" />
+              Ver Estoque Consolidado
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
