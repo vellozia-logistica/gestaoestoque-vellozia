@@ -20,6 +20,11 @@ export default function EstoqueConsolidado() {
   )
 
   const filiais = useMemo(() => getFiliais(velloziaItems), [velloziaItems])
+
+  // Goiânia separada das demais filiais para colunas dedicadas
+  const goianiaKey = filiais.find(f => f.toLowerCase().includes('goi')) ?? ''
+  const outrasFiliais = filiais.filter(f => !f.toLowerCase().includes('goi'))
+
   const divergentes = estoque.filter(e => e.divergencia).length
 
   const filtered = useMemo(() => {
@@ -46,14 +51,22 @@ export default function EstoqueConsolidado() {
   }, [filtered, filialExport])
 
   const handleExportExcel = () => {
-    const headers = ['Produto', 'Grupo', 'ID SIAC', 'Lote', 'Vencimento', 'Goiânia (SIAC)',
-      ...(filialExport === 'todas' ? filiais : [filialExport]),
-      'Total Vellozia', 'Divergência']
-    const rows = exportData.map(e => [
-      e.descricao, e.grupoProduto, e.idSiac, e.lote, e.vencimento, e.estoqueGoiania,
-      ...(filialExport === 'todas' ? filiais : [filialExport]).map(f => e.filiais[f] ?? 0),
-      e.totalVellozia, e.divergencia ? 'Sim' : 'Não',
-    ])
+    const exportFiliais = filialExport === 'todas' ? outrasFiliais : [filialExport].filter(f => !f.toLowerCase().includes('goi'))
+    const headers = [
+      'Produto', 'Grupo', 'ID SIAC', 'Lote', 'Vencimento',
+      'Goiânia (SIAC)', 'Goiânia (Vellozia)', 'Diferença',
+      ...exportFiliais,
+      'Total Vellozia', 'Divergência',
+    ]
+    const rows = exportData.map(e => {
+      const gv = goianiaKey ? (e.filiais[goianiaKey] ?? 0) : 0
+      return [
+        e.descricao, e.grupoProduto, e.idSiac, e.lote, e.vencimento,
+        e.estoqueGoiania, gv, e.estoqueGoiania - gv,
+        ...exportFiliais.map(f => e.filiais[f] ?? 0),
+        e.totalVellozia, e.divergencia ? 'Sim' : 'Não',
+      ]
+    })
     const label = filialExport === 'todas' ? 'todas_filiais' : filialExport.toLowerCase().replace(/\s+/g, '_')
     downloadExcel([headers, ...rows], `estoque_consolidado_${label}.xlsx`, 'Estoque Consolidado')
   }
@@ -146,7 +159,7 @@ export default function EstoqueConsolidado() {
           />
         </div>
 
-        {/* Export controls — pushed right */}
+        {/* Export controls */}
         <div className="ml-auto flex items-center gap-2">
           <select
             value={filialExport}
@@ -187,19 +200,20 @@ export default function EstoqueConsolidado() {
               <th className="px-4 py-3 text-left font-medium">Produto</th>
               <th className="px-4 py-3 text-left font-medium">Lote</th>
               <th className="px-4 py-3 text-left font-medium">Vencimento</th>
-              <th className="px-4 py-3 text-right font-medium">Goiânia (SIAC)</th>
-              {filiais.map(f => (
-                <th key={f} className="px-4 py-3 text-right font-medium">{f}</th>
+              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Goiânia (SIAC)</th>
+              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Goiânia (Vellozia)</th>
+              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Diferença</th>
+              {outrasFiliais.map(f => (
+                <th key={f} className="px-4 py-3 text-right font-medium whitespace-nowrap">{f}</th>
               ))}
-              <th className="px-4 py-3 text-right font-medium">Total Vellozia</th>
+              <th className="px-4 py-3 text-right font-medium whitespace-nowrap">Total Vellozia</th>
               <th className="px-4 py-3 text-center font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((item, i) => {
-              const goianiaVellozia = Object.entries(item.filiais).find(([k]) =>
-                k.toLowerCase().includes('goi')
-              )?.[1] ?? 0
+              const goianiaVellozia = goianiaKey ? (item.filiais[goianiaKey] ?? 0) : 0
+              const diferenca = item.estoqueGoiania - goianiaVellozia
               return (
                 <tr key={i} className={item.divergencia ? 'bg-red-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   <td className="px-4 py-2">
@@ -207,19 +221,27 @@ export default function EstoqueConsolidado() {
                     <div className="text-xs text-gray-400 font-mono">Grupo {item.grupoProduto} · SIAC {item.idSiac}</div>
                   </td>
                   <td className="px-4 py-2 text-gray-600 font-mono text-xs">{item.lote}</td>
-                  <td className="px-4 py-2 text-gray-600">{item.vencimento}</td>
-                  <td className="px-4 py-2 text-right font-medium text-blue-700">{item.estoqueGoiania.toLocaleString('pt-BR')}</td>
-                  {filiais.map(f => (
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{item.vencimento}</td>
+                  <td className="px-4 py-2 text-right font-medium text-blue-700">
+                    {item.estoqueGoiania.toLocaleString('pt-BR')}
+                  </td>
+                  <td className="px-4 py-2 text-right font-medium text-green-700">
+                    {goianiaVellozia.toLocaleString('pt-BR')}
+                  </td>
+                  <td className={`px-4 py-2 text-right font-bold ${diferenca === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {diferenca > 0 ? '+' : ''}{diferenca.toLocaleString('pt-BR')}
+                  </td>
+                  {outrasFiliais.map(f => (
                     <td key={f} className="px-4 py-2 text-right text-gray-700">
                       {(item.filiais[f] ?? 0).toLocaleString('pt-BR')}
                     </td>
                   ))}
-                  <td className="px-4 py-2 text-right font-medium text-gray-800">{item.totalVellozia.toLocaleString('pt-BR')}</td>
+                  <td className="px-4 py-2 text-right font-medium text-gray-800">
+                    {item.totalVellozia.toLocaleString('pt-BR')}
+                  </td>
                   <td className="px-4 py-2 text-center">
                     {item.divergencia ? (
-                      <span title={`SIAC: ${item.estoqueGoiania} · Vellozia Goiânia: ${goianiaVellozia}`}>
-                        <AlertTriangle size={16} className="text-red-500 inline" />
-                      </span>
+                      <AlertTriangle size={16} className="text-red-500 inline" />
                     ) : (
                       <CheckCircle2 size={16} className="text-green-500 inline" />
                     )}
