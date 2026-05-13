@@ -23,7 +23,7 @@ function ContextoViewer({ linhas }: { linhas: ContextoLinha[] }) {
           linha com erro destacada
         </span>
       </div>
-      <div className="overflow-x-auto bg-gray-900 max-h-96">
+      <div className="overflow-x-auto bg-gray-900">
         <pre className="text-xs font-mono p-4 leading-6">
           {linhas.map((l) => (
             <div
