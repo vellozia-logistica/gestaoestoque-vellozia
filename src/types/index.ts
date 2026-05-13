@@ -43,6 +43,12 @@ export interface EstoqueConsolidado {
   divergencia: boolean
 }
 
+export interface ContextoLinha {
+  numero: number
+  conteudo: string
+  ehErro: boolean
+}
+
 export interface Inconsistencia {
   id: string
   arquivo: 'siac' | 'vellozia'
@@ -50,7 +56,8 @@ export interface Inconsistencia {
   conteudo: string
   motivo: string
   resolvido: boolean
-  contexto?: Record<string, string | number>
+  formData?: Record<string, string | number>
+  linhasContexto?: ContextoLinha[]
 }
 
 export type UserRole = 'usuario' | 'desenvolvedor' | 'administrador'

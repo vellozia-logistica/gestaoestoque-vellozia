@@ -1,8 +1,18 @@
-import { SiacItem, Inconsistencia } from '@/types'
+import { SiacItem, Inconsistencia, ContextoLinha } from '@/types'
 
 export interface SiacParseResult {
   items: SiacItem[]
   inconsistencias: Inconsistencia[]
+}
+
+function buildContexto(lines: string[], errorIdx: number): ContextoLinha[] {
+  const start = Math.max(0, errorIdx - 10)
+  const end = Math.min(lines.length - 1, errorIdx + 10)
+  return Array.from({ length: end - start + 1 }, (_, k) => ({
+    numero: start + k + 1,
+    conteudo: lines[start + k].replace(/�/g, '?'),
+    ehErro: start + k === errorIdx,
+  }))
 }
 
 export function parseSiacCSV(content: string): SiacParseResult {
@@ -11,7 +21,7 @@ export function parseSiacCSV(content: string): SiacParseResult {
   const inconsistencias: Inconsistencia[] = []
   let current: Partial<SiacItem> | null = null
 
-  const SKIP = /^(-{3,}|[-￿]{3,}|Relat|C.digo|Descri|16\.|P.gina|Continua|\s*$)/i
+  const SKIP = /^(-{3,}|[-￿]{3,}|Relat|C.digo|Descri|16\.|P.gina|Continua|\s*$)/i
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]
@@ -22,7 +32,15 @@ export function parseSiacCSV(content: string): SiacParseResult {
     if (line.includes('<< ESTOQUE TOTAL >>')) {
       const codigoMatch = line.match(/^(\d{7})/)
       if (!codigoMatch) {
-        inconsistencias.push({ id: crypto.randomUUID(), arquivo: 'siac', linhaNumero: i + 1, conteudo: raw.trim(), motivo: 'Código de produto não reconhecido', resolvido: false })
+        inconsistencias.push({
+          id: crypto.randomUUID(),
+          arquivo: 'siac',
+          linhaNumero: i + 1,
+          conteudo: raw.trim(),
+          motivo: 'Código de produto não reconhecido',
+          resolvido: false,
+          linhasContexto: buildContexto(lines, i),
+        })
         continue
       }
       const codigo = codigoMatch[1]
@@ -42,7 +60,6 @@ export function parseSiacCSV(content: string): SiacParseResult {
     } else if (current && /01\.\d/.test(line)) {
       const loteMatch = line.match(/01\.\d[\d.-]+\s+(\S+)\s+(\d{2}\/\d{2}\/\d{4})\s+([\d.,]+)/)
       if (!loteMatch) {
-        // Tenta extrair parcialmente lote e data para pré-preencher formulário
         const parcial = line.match(/01\.\d[\d.-]+\s+(\S+)(?:\s+(\d{2}\/\d{2}\/\d{4}))?/)
         inconsistencias.push({
           id: crypto.randomUUID(),
@@ -51,7 +68,7 @@ export function parseSiacCSV(content: string): SiacParseResult {
           conteudo: raw.trim(),
           motivo: 'Linha de lote com data ou quantidade inválida',
           resolvido: false,
-          contexto: {
+          formData: {
             codigo: current.codigo || '',
             descricao: current.descricao || '',
             unidade: current.unidade || '',
@@ -60,6 +77,7 @@ export function parseSiacCSV(content: string): SiacParseResult {
             vencimento: parcial?.[2] || '',
             estoque: 0,
           },
+          linhasContexto: buildContexto(lines, i),
         })
         continue
       }
@@ -77,7 +95,6 @@ export function parseSiacCSV(content: string): SiacParseResult {
     }
   }
 
-  // Remove cabeçalhos sem lote que ficaram sem lotes associados
   const withLote = items.filter(i => i.lote !== '')
   const semLote = items.filter(i => i.lote === '' && i.estoque > 0)
   return { items: [...withLote, ...semLote], inconsistencias }

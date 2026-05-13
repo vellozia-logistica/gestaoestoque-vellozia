@@ -1,9 +1,9 @@
 'use client'
 import { useStore } from '@/lib/store'
 import { useState } from 'react'
-import { CheckCircle2, Trash2, AlertTriangle, Pencil, X, Check } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import Link from 'next/link'
-import { SiacItem, VelloziaItem } from '@/types'
+import { SiacItem, VelloziaItem, ContextoLinha } from '@/types'
 
 const ARQUIVO_LABEL: Record<string, string> = { siac: 'SIAC', vellozia: 'Vellozia' }
 const ARQUIVO_COLOR: Record<string, string> = {
@@ -11,26 +11,60 @@ const ARQUIVO_COLOR: Record<string, string> = {
   vellozia: 'bg-green-100 text-green-700',
 }
 
-function SiacForm({ contexto, onSave, onCancel }: {
-  contexto: Record<string, string | number>
+function ContextoViewer({ linhas }: { linhas: ContextoLinha[] }) {
+  return (
+    <div className="rounded-xl border border-gray-700 overflow-hidden">
+      <div className="bg-gray-800 px-4 py-2 flex items-center justify-between">
+        <span className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
+          Contexto do arquivo
+        </span>
+        <span className="text-xs text-red-400 flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-red-600 inline-block" />
+          linha com erro destacada
+        </span>
+      </div>
+      <div className="overflow-x-auto bg-gray-900 max-h-96">
+        <pre className="text-xs font-mono p-4 leading-6">
+          {linhas.map((l) => (
+            <div
+              key={l.numero}
+              className={l.ehErro
+                ? 'bg-red-900/60 text-red-300 rounded px-1 -mx-1 ring-1 ring-red-500/50'
+                : 'text-gray-400'
+              }
+            >
+              <span className="select-none text-gray-600 mr-4 inline-block w-5 text-right">
+                {l.numero}
+              </span>
+              <span>{l.conteudo || ' '}</span>
+            </div>
+          ))}
+        </pre>
+      </div>
+    </div>
+  )
+}
+
+function SiacForm({ formData, onSave, onCancel }: {
+  formData: Record<string, string | number>
   onSave: (item: SiacItem) => void
   onCancel: () => void
 }) {
   const [f, setF] = useState<SiacItem>({
-    codigo: String(contexto['codigo'] ?? ''),
-    descricao: String(contexto['descricao'] ?? ''),
-    unidade: String(contexto['unidade'] ?? ''),
-    laboratorio: String(contexto['laboratorio'] ?? ''),
-    lote: String(contexto['lote'] ?? ''),
-    vencimento: String(contexto['vencimento'] ?? ''),
-    estoque: Number(contexto['estoque'] ?? 0),
+    codigo: String(formData['codigo'] ?? ''),
+    descricao: String(formData['descricao'] ?? ''),
+    unidade: String(formData['unidade'] ?? ''),
+    laboratorio: String(formData['laboratorio'] ?? ''),
+    lote: String(formData['lote'] ?? ''),
+    vencimento: String(formData['vencimento'] ?? ''),
+    estoque: Number(formData['estoque'] ?? 0),
   })
   const valid = f.codigo && f.lote && f.vencimento && f.estoque >= 0
 
   return (
-    <div className="mt-3 border border-blue-200 rounded-xl bg-blue-50 p-4">
-      <p className="text-xs font-semibold text-blue-700 mb-3 uppercase tracking-wide">Preencher dados SIAC</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+    <div className="mt-5 border border-blue-200 rounded-xl bg-blue-50 p-5">
+      <p className="text-xs font-semibold text-blue-700 mb-4 uppercase tracking-wide">Preencher dados SIAC</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {[
           { label: 'Código', key: 'codigo' },
           { label: 'Descrição', key: 'descricao' },
@@ -45,7 +79,7 @@ function SiacForm({ contexto, onSave, onCancel }: {
               type="text"
               value={(f as unknown as Record<string, string>)[key] ?? ''}
               onChange={e => setF(prev => ({ ...prev, [key]: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
             />
           </div>
         ))}
@@ -55,20 +89,23 @@ function SiacForm({ contexto, onSave, onCancel }: {
             type="number"
             value={f.estoque}
             onChange={e => setF(prev => ({ ...prev, estoque: parseFloat(e.target.value) || 0 }))}
-            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
           />
         </div>
       </div>
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2 mt-5">
         <button
           onClick={() => valid && onSave(f)}
           disabled={!valid}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-sm font-medium disabled:opacity-40"
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-40"
           style={{ backgroundColor: '#4f2e87' }}
         >
-          <Check size={14} /> Salvar e resolver
+          <Check size={14} /> Salvar e avançar
         </button>
-        <button onClick={onCancel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50">
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
+        >
           <X size={14} /> Cancelar
         </button>
       </div>
@@ -76,27 +113,27 @@ function SiacForm({ contexto, onSave, onCancel }: {
   )
 }
 
-function VelloziaForm({ contexto, onSave, onCancel }: {
-  contexto: Record<string, string | number>
+function VelloziaForm({ formData, onSave, onCancel }: {
+  formData: Record<string, string | number>
   onSave: (item: VelloziaItem) => void
   onCancel: () => void
 }) {
   const [f, setF] = useState<VelloziaItem>({
-    empresa: String(contexto['empresa'] ?? ''),
-    produto: String(contexto['produto'] ?? ''),
-    idProduto: Number(contexto['idProduto'] ?? 0),
-    lote: String(contexto['lote'] ?? ''),
-    dataValidade: String(contexto['dataValidade'] ?? ''),
-    dataFabricacao: String(contexto['dataFabricacao'] ?? ''),
-    diasVencimento: Number(contexto['diasVencimento'] ?? 0),
-    qtdeEstoque: Number(contexto['qtdeEstoque'] ?? 0),
+    empresa: String(formData['empresa'] ?? ''),
+    produto: String(formData['produto'] ?? ''),
+    idProduto: Number(formData['idProduto'] ?? 0),
+    lote: String(formData['lote'] ?? ''),
+    dataValidade: String(formData['dataValidade'] ?? ''),
+    dataFabricacao: String(formData['dataFabricacao'] ?? ''),
+    diasVencimento: Number(formData['diasVencimento'] ?? 0),
+    qtdeEstoque: Number(formData['qtdeEstoque'] ?? 0),
   })
   const valid = f.empresa && f.idProduto > 0 && f.lote
 
   return (
-    <div className="mt-3 border border-green-200 rounded-xl bg-green-50 p-4">
-      <p className="text-xs font-semibold text-green-700 mb-3 uppercase tracking-wide">Preencher dados Vellozia</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+    <div className="mt-5 border border-green-200 rounded-xl bg-green-50 p-5">
+      <p className="text-xs font-semibold text-green-700 mb-4 uppercase tracking-wide">Preencher dados Vellozia</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {[
           { label: 'Empresa / Filial', key: 'empresa', type: 'text' },
           { label: 'Produto', key: 'produto', type: 'text' },
@@ -116,21 +153,24 @@ function VelloziaForm({ contexto, onSave, onCancel }: {
                 ...prev,
                 [key]: type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value,
               }))}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
             />
           </div>
         ))}
       </div>
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2 mt-5">
         <button
           onClick={() => valid && onSave(f)}
           disabled={!valid}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-sm font-medium disabled:opacity-40"
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-40"
           style={{ backgroundColor: '#4f2e87' }}
         >
-          <Check size={14} /> Salvar e resolver
+          <Check size={14} /> Salvar e avançar
         </button>
-        <button onClick={onCancel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50">
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
+        >
           <X size={14} /> Cancelar
         </button>
       </div>
@@ -140,30 +180,41 @@ function VelloziaForm({ contexto, onSave, onCancel }: {
 
 export default function InconsistenciasPage() {
   const { inconsistencias, resolveInconsistencia, clearInconsistencias, addSiacItem, addVelloziaItem } = useStore()
-  const [editing, setEditing] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [index, setIndex] = useState(0)
 
   const pendentes = inconsistencias.filter(i => !i.resolvido)
   const resolvidas = inconsistencias.filter(i => i.resolvido)
 
-  const handleSaveSiac = (id: string, item: SiacItem) => {
+  const safeIndex = Math.min(index, Math.max(0, pendentes.length - 1))
+  const current = pendentes[safeIndex]
+
+  const handleSaveSiac = (item: SiacItem) => {
     addSiacItem(item)
-    resolveInconsistencia(id)
-    setEditing(null)
+    resolveInconsistencia(current.id)
+    setEditingId(null)
   }
 
-  const handleSaveVellozia = (id: string, item: VelloziaItem) => {
+  const handleSaveVellozia = (item: VelloziaItem) => {
     addVelloziaItem(item)
-    resolveInconsistencia(id)
-    setEditing(null)
+    resolveInconsistencia(current.id)
+    setEditingId(null)
+  }
+
+  const goNext = () => {
+    setIndex(i => Math.min(i + 1, pendentes.length - 1))
+    setEditingId(null)
+  }
+  const goPrev = () => {
+    setIndex(i => Math.max(i - 1, 0))
+    setEditingId(null)
   }
 
   if (inconsistencias.length === 0) {
     return (
       <div className="p-8 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Inconsistências</h1>
-          <p className="text-gray-500 mt-1">Linhas que não puderam ser importadas automaticamente</p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Inconsistências</h1>
+        <p className="text-gray-500 mb-8">Linhas que não puderam ser importadas automaticamente</p>
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <CheckCircle2 size={48} className="text-green-400 mb-4" />
           <p className="text-gray-600 font-medium">Nenhuma inconsistência encontrada</p>
@@ -178,111 +229,143 @@ export default function InconsistenciasPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="mb-6 flex items-start justify-between gap-3">
+    <div className="p-6 w-full max-w-6xl">
+      {/* Header */}
+      <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Inconsistências</h1>
           <p className="text-gray-500 mt-1">{pendentes.length} pendente(s) · {resolvidas.length} resolvida(s)</p>
         </div>
-        {resolvidas.length > 0 && (
-          <button onClick={() => clearInconsistencias()}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50">
-            <Trash2 size={14} /> Limpar resolvidas
-          </button>
-        )}
       </div>
 
+      {/* Aviso */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex gap-3">
         <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
         <div className="text-sm text-amber-800">
-          <p className="font-medium">Como corrigir</p>
-          <p className="mt-1">Clique em <strong>Corrigir</strong> em cada linha para ver a linha original completa e preencher os dados manualmente. O registro corrigido será adicionado ao estoque e a inconsistência marcada como resolvida.</p>
+          <p className="font-medium">Tratamento obrigatório</p>
+          <p className="mt-1">
+            Corrija cada inconsistência para incluir o registro no estoque consolidado.
+            A linha com erro aparece destacada em vermelho no contexto do arquivo.
+          </p>
         </div>
       </div>
 
-      {/* Pendentes */}
-      {pendentes.length > 0 && (
-        <div className="mb-8 space-y-3">
-          <h2 className="font-semibold text-gray-700 flex items-center gap-2">
-            <AlertTriangle size={15} className="text-amber-500" />
-            Pendentes ({pendentes.length})
-          </h2>
+      {pendentes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-green-50 rounded-2xl border border-green-200">
+          <CheckCircle2 size={48} className="text-green-400 mb-4" />
+          <p className="text-gray-700 font-semibold text-lg">Todas as inconsistências foram corrigidas!</p>
+          <p className="text-gray-400 text-sm mt-2">{resolvidas.length} registro(s) resolvido(s)</p>
+          <button
+            onClick={() => { clearInconsistencias(); setIndex(0) }}
+            className="mt-6 px-5 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
+          >
+            Limpar histórico
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Navegação wizard */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-gray-700">
+                {safeIndex + 1} de {pendentes.length}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${ARQUIVO_COLOR[current.arquivo]}`}>
+                {ARQUIVO_LABEL[current.arquivo]}
+              </span>
+              <span className="text-xs text-gray-400 font-mono">Linha {current.linhaNumero}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={goPrev}
+                disabled={safeIndex === 0}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={14} /> Anterior
+              </button>
+              <button
+                onClick={goNext}
+                disabled={safeIndex === pendentes.length - 1}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Próximo <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
 
-          {pendentes.map(item => (
-            <div key={item.id} className="bg-white border border-amber-200 rounded-xl overflow-hidden shadow-sm">
-              {/* Linha do arquivo — sempre visível */}
-              <div className="px-4 py-3 bg-amber-50 border-b border-amber-100">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${ARQUIVO_COLOR[item.arquivo]}`}>
-                      {ARQUIVO_LABEL[item.arquivo]}
-                    </span>
-                    <span className="text-xs text-gray-400 font-mono">Linha {item.linhaNumero}</span>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => setEditing(editing === item.id ? null : item.id)}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border transition-colors"
-                      style={editing === item.id
-                        ? { borderColor: '#c4b5fd', color: '#4f2e87', backgroundColor: '#faf5ff' }
-                        : { borderColor: '#d1d5db', color: '#374151' }}
-                    >
-                      {editing === item.id ? <X size={12} /> : <Pencil size={12} />}
-                      {editing === item.id ? 'Fechar' : 'Corrigir'}
-                    </button>
-                    <button
-                      onClick={() => resolveInconsistencia(item.id)}
-                      title="Marcar como resolvida sem corrigir"
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-green-600 border border-green-200 hover:bg-green-50"
-                    >
-                      <CheckCircle2 size={12} /> Ignorar
-                    </button>
-                  </div>
-                </div>
+          {/* Card da inconsistência */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            {/* Motivo do erro */}
+            <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+              <AlertTriangle size={15} className="text-red-500 shrink-0" />
+              <span className="text-sm text-red-700 font-medium">{current.motivo}</span>
+            </div>
 
-                {/* Linha bruta completa */}
-                <div className="mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Linha original:</p>
-                  <pre className="text-xs bg-white border border-amber-200 rounded-lg px-3 py-2 overflow-x-auto text-gray-700 whitespace-pre-wrap break-all font-mono">
-                    {item.conteudo}
+            <div className="p-5 space-y-5">
+              {/* Contexto com destaque */}
+              {current.linhasContexto && current.linhasContexto.length > 0 ? (
+                <ContextoViewer linhas={current.linhasContexto} />
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Linha original:</p>
+                  <pre className="text-xs bg-gray-900 text-gray-300 border border-gray-700 rounded-xl px-4 py-3 overflow-x-auto font-mono whitespace-pre-wrap break-all">
+                    {current.conteudo}
                   </pre>
                 </div>
+              )}
 
-                <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                  <AlertTriangle size={11} />
-                  {item.motivo}
-                </p>
-              </div>
-
-              {/* Formulário de correção — expande ao clicar Corrigir */}
-              {editing === item.id && (
-                <div className="px-4 pb-4">
-                  {item.arquivo === 'siac' ? (
-                    <SiacForm
-                      contexto={item.contexto || {}}
-                      onSave={siacItem => handleSaveSiac(item.id, siacItem)}
-                      onCancel={() => setEditing(null)}
-                    />
-                  ) : (
-                    <VelloziaForm
-                      contexto={item.contexto || {}}
-                      onSave={velItem => handleSaveVellozia(item.id, velItem)}
-                      onCancel={() => setEditing(null)}
-                    />
-                  )}
-                </div>
+              {/* Formulário de correção */}
+              {editingId === current.id ? (
+                current.arquivo === 'siac' ? (
+                  <SiacForm
+                    formData={current.formData || {}}
+                    onSave={handleSaveSiac}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
+                  <VelloziaForm
+                    formData={current.formData || {}}
+                    onSave={handleSaveVellozia}
+                    onCancel={() => setEditingId(null)}
+                  />
+                )
+              ) : (
+                <button
+                  onClick={() => setEditingId(current.id)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-medium"
+                  style={{ backgroundColor: '#4f2e87' }}
+                >
+                  Corrigir esta inconsistência
+                </button>
               )}
             </div>
-          ))}
-        </div>
+          </div>
+
+          {/* Bolinhas de progresso */}
+          {pendentes.length > 1 && (
+            <div className="flex justify-center gap-1.5 mt-5">
+              {pendentes.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setIndex(i); setEditingId(null) }}
+                  className={`h-2 rounded-full transition-all ${
+                    i === safeIndex
+                      ? 'bg-purple-600 w-5'
+                      : 'bg-gray-300 w-2 hover:bg-gray-400'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Resolvidas */}
-      {resolvidas.length > 0 && (
-        <div>
+      {resolvidas.length > 0 && pendentes.length > 0 && (
+        <div className="mt-8">
           <h2 className="font-semibold text-gray-500 mb-3 flex items-center gap-2">
             <CheckCircle2 size={15} className="text-green-500" />
-            Resolvidas ({resolvidas.length})
+            Já corrigidas ({resolvidas.length})
           </h2>
           <div className="space-y-2">
             {resolvidas.map(item => (
