@@ -1,24 +1,64 @@
 import Papa from 'papaparse'
-import { VelloziaItem } from '@/types'
+import { VelloziaItem, Inconsistencia } from '@/types'
 
-export function parseVelloziaCSV(content: string): VelloziaItem[] {
-  const result = Papa.parse<string[]>(content, { skipEmptyLines: true })
-  const rows = result.data.slice(1) // pula header
+export interface VelloziaParseResult {
+  items: VelloziaItem[]
+  inconsistencias: Inconsistencia[]
+}
 
-  return rows.map((row) => {
-    const produto = row[1] || ''
-    const idMatch = produto.match(/\(idProduto\s*=\s*(\d+)\)/)
-    const idProduto = idMatch ? parseInt(idMatch[1]) : 0
+export function parseVelloziaCSV(content: string): VelloziaParseResult {
+  const result = Papa.parse<Record<string, string>>(content, {
+    header: true,
+    skipEmptyLines: true,
+    quoteChar: '"',
+  })
 
-    return {
-      empresa: row[0]?.replace(/"/g, '').trim() || '',
-      produto: produto.replace(/\s*\(idProduto\s*=\s*\d+\)/i, '').replace(/"/g, '').trim(),
-      idProduto,
-      lote: row[2]?.replace(/"/g, '').trim() || '',
-      dataValidade: row[3]?.replace(/"/g, '').trim() || '',
-      dataFabricacao: row[4]?.replace(/"/g, '').trim() || '',
-      diasVencimento: parseInt(row[5] || '0') || 0,
-      qtdeEstoque: parseFloat((row[6] || '0').replace(',', '.')) || 0,
+  const items: VelloziaItem[] = []
+  const inconsistencias: Inconsistencia[] = []
+
+  result.data.forEach((row, idx) => {
+    const linhaNumero = idx + 2
+    const rawProduto = row['Produto'] || ''
+    const empresa = row['Empresa'] || ''
+    const lote = row['Lote'] || ''
+    const dataValidade = row['Data de Validade'] || ''
+    const dataFabricacao = row['Data de Fabricação'] || ''
+    const qtdeStr = row['Qtde Estoque'] || '0'
+    const diasStr = row['Dias até o vencimento'] || '0'
+
+    const idMatch = rawProduto.match(/\(idProduto\s*=\s*(\d+)\)/i)
+    const qtde = parseFloat(qtdeStr.replace(',', '.'))
+    const produto = rawProduto.replace(/\s*\(idProduto\s*=\s*\d+\)/i, '').trim()
+
+    const problemas: string[] = []
+    if (!empresa) problemas.push('empresa ausente')
+    if (!idMatch) problemas.push('idProduto não encontrado')
+    if (!lote) problemas.push('lote ausente')
+    if (isNaN(qtde)) problemas.push('quantidade inválida')
+
+    if (problemas.length > 0) {
+      inconsistencias.push({
+        id: crypto.randomUUID(),
+        arquivo: 'vellozia',
+        linhaNumero,
+        conteudo: [empresa, rawProduto, lote].filter(Boolean).join(' | '),
+        motivo: problemas.join('; '),
+        resolvido: false,
+      })
+      return
     }
-  }).filter(i => i.idProduto > 0)
+
+    items.push({
+      empresa,
+      produto,
+      idProduto: parseInt(idMatch![1]),
+      lote,
+      dataValidade,
+      dataFabricacao,
+      diasVencimento: parseInt(diasStr) || 0,
+      qtdeEstoque: qtde,
+    })
+  })
+
+  return { items, inconsistencias }
 }

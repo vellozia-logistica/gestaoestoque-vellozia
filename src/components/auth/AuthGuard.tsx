@@ -13,6 +13,7 @@ const ROUTE_ROLES: Record<string, UserRole[]> = {
   '/importar/id-produto': ['desenvolvedor', 'administrador'],
   '/relacionamentos': ['administrador'],
   '/admin/usuarios': ['administrador'],
+  '/inconsistencias': ['desenvolvedor', 'administrador'],
 }
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {

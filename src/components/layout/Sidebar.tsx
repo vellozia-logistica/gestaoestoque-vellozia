@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Upload, GitMerge, PackageSearch,
   ChevronDown, ChevronRight, ChevronLeft,
-  FileText, Tag, Clock, Users, LogOut,
+  FileText, Tag, Clock, Users, LogOut, AlertTriangle,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
@@ -55,12 +55,21 @@ const menu = [
     iconColor: '#f59e0b',
     roles: ['administrador'] as UserRole[],
   },
+  {
+    label: 'Inconsistências',
+    href: '/inconsistencias',
+    icon: AlertTriangle,
+    iconColor: '#f97316',
+    roles: ['desenvolvedor', 'administrador'] as UserRole[],
+    badge: true,
+  },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { sidebarCollapsed, setSidebarCollapsed, currentUser, setCurrentUser } = useStore()
+  const { sidebarCollapsed, setSidebarCollapsed, currentUser, setCurrentUser, inconsistencias } = useStore()
+  const inconsistenciasPendentes = inconsistencias.filter(i => !i.resolvido).length
   const [openMenus, setOpenMenus] = useState<string[]>(['Importar Arquivos'])
   const [sessionTime, setSessionTime] = useState('')
 
@@ -171,7 +180,15 @@ export default function Sidebar() {
               style={active ? { color: PURPLE } : {}}
             >
               <Icon size={18} style={{ color: active ? PURPLE : item.iconColor, flexShrink: 0 }} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+              {!collapsed && 'badge' in item && item.badge && inconsistenciasPendentes > 0 && (
+                <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                  {inconsistenciasPendentes}
+                </span>
+              )}
+              {collapsed && 'badge' in item && item.badge && inconsistenciasPendentes > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-orange-500 rounded-full" />
+              )}
             </Link>
           )
         })}

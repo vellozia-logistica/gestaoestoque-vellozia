@@ -43,6 +43,15 @@ export interface EstoqueConsolidado {
   divergencia: boolean
 }
 
+export interface Inconsistencia {
+  id: string
+  arquivo: 'siac' | 'vellozia'
+  linhaNumero: number
+  conteudo: string
+  motivo: string
+  resolvido: boolean
+}
+
 export type UserRole = 'usuario' | 'desenvolvedor' | 'administrador'
 
 export interface User {
@@ -60,6 +69,7 @@ export interface AppState {
   velloziaItems: VelloziaItem[]
   idProdutoGrupo: IdProdutoGrupo[]
   relacionamentos: RelacionamentoSiacVellozia[]
+  inconsistencias: Inconsistencia[]
   sidebarCollapsed: boolean
   users: User[]
   currentUser: User | null
@@ -67,6 +77,9 @@ export interface AppState {
   setVelloziaItems: (items: VelloziaItem[]) => void
   setIdProdutoGrupo: (items: IdProdutoGrupo[]) => void
   setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => void
+  addInconsistencias: (items: Inconsistencia[]) => void
+  resolveInconsistencia: (id: string) => void
+  clearInconsistencias: (arquivo?: 'siac' | 'vellozia') => void
   setSidebarCollapsed: (v: boolean) => void
   setCurrentUser: (user: User | null) => void
   setUsers: (users: User[]) => void
