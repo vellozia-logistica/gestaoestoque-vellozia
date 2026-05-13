@@ -34,6 +34,15 @@ export default function ImportarVellozia() {
         description="Relatório de estoque exportado do sistema Vellozia"
         accept=".csv"
         onParse={handleParse}
+        template={{
+          filename: 'modelo_estoque_vellozia.csv',
+          content:
+            'Empresa;Produto;Lote;Data de Validade;Data de Fabricação;Dias até o vencimento;Qtde Estoque\r\n' +
+            'Uberlândia;BOTULIM 50UI - CAIXA (idProduto = 123);LT2024001;31/12/2026;01/01/2025;596;10\r\n' +
+            'Uberlândia;TOXINA BOTULINICA 100UI (idProduto = 124);LT2024002;30/06/2026;01/06/2024;413;5\r\n' +
+            'Tocantins;BOTULIM 50UI - CAIXA (idProduto = 123);LT2024001;31/12/2026;01/01/2025;596;3\r\n' +
+            'Goiânia;BOTULIM 50UI - CAIXA (idProduto = 123);LT2024001;31/12/2026;01/01/2025;596;10\r\n',
+        }}
       />
 
       {velloziaItems.length > 0 && (

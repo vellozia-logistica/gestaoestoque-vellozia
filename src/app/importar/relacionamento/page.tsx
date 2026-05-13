@@ -32,6 +32,14 @@ export default function ImportarRelacionamento() {
         description="Arquivo RELACIONAMENTO SIAC X VELLOZIA.csv"
         accept=".csv"
         onParse={handleParse}
+        template={{
+          filename: 'modelo_relacionamento_siac_vellozia.csv',
+          content:
+            'GRUPO PRODUTO;ID SIAC;DESCRIÇÃO VELLOZIA\r\n' +
+            '1001;500;BOTULIM 50UI CAIXA\r\n' +
+            '1002;501;TOXINA BOTULINICA 100UI\r\n' +
+            '1003;502;PREENCHEDOR ACIDO HIALURONICO 1ML\r\n',
+        }}
       />
 
       {relacionamentos.length > 0 && (
