@@ -10,7 +10,7 @@ import Link from 'next/link'
 const EMPTY: RelacionamentoSiacVellozia = { grupoProduto: 0, idSiac: 0, descricaoVellozia: '' }
 
 export default function GerenciarRelacionamento() {
-  const { relacionamentos, setRelacionamentos, addInconsistencias } = useStore()
+  const { relacionamentos, setRelacionamentos, addInconsistencias, clearInconsistencias } = useStore()
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [importBanner, setImportBanner] = useState<{ ok: number; erros: number } | null>(null)
@@ -56,8 +56,10 @@ export default function GerenciarRelacionamento() {
   }
 
   const handleReset = () => {
-    if (!confirm('Apagar todos os relacionamentos? Esta ação não pode ser desfeita.')) return
+    if (!confirm('Apagar todos os relacionamentos e inconsistências pendentes? Esta ação não pode ser desfeita.')) return
     setRelacionamentos([])
+    clearInconsistencias('relacionamento')
+    setImportBanner(null)
   }
 
   return (
