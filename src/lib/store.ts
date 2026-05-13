@@ -15,7 +15,9 @@ export const useStore = create<AppState>()(
       currentUser: null,
 
       setSiacItems: (items: SiacItem[]) => set({ siacItems: items }),
+      addSiacItem: (item: SiacItem) => set(s => ({ siacItems: [...s.siacItems, item] })),
       setVelloziaItems: (items: VelloziaItem[]) => set({ velloziaItems: items }),
+      addVelloziaItem: (item: VelloziaItem) => set(s => ({ velloziaItems: [...s.velloziaItems, item] })),
       setIdProdutoGrupo: (items: IdProdutoGrupo[]) => set({ idProdutoGrupo: items }),
       setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => set({ relacionamentos: items }),
 

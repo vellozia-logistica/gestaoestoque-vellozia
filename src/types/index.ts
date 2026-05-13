@@ -50,6 +50,7 @@ export interface Inconsistencia {
   conteudo: string
   motivo: string
   resolvido: boolean
+  contexto?: Record<string, string | number>
 }
 
 export type UserRole = 'usuario' | 'desenvolvedor' | 'administrador'
@@ -74,7 +75,9 @@ export interface AppState {
   users: User[]
   currentUser: User | null
   setSiacItems: (items: SiacItem[]) => void
+  addSiacItem: (item: SiacItem) => void
   setVelloziaItems: (items: VelloziaItem[]) => void
+  addVelloziaItem: (item: VelloziaItem) => void
   setIdProdutoGrupo: (items: IdProdutoGrupo[]) => void
   setRelacionamentos: (items: RelacionamentoSiacVellozia[]) => void
   addInconsistencias: (items: Inconsistencia[]) => void

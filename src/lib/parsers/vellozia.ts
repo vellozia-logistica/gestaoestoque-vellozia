@@ -44,6 +44,16 @@ export function parseVelloziaCSV(content: string): VelloziaParseResult {
         conteudo: [empresa, rawProduto, lote].filter(Boolean).join(' | '),
         motivo: problemas.join('; '),
         resolvido: false,
+        contexto: {
+          empresa,
+          produto,
+          idProduto: idMatch ? parseInt(idMatch[1]) : 0,
+          lote,
+          dataValidade,
+          dataFabricacao,
+          diasVencimento: parseInt(diasStr) || 0,
+          qtdeEstoque: isNaN(qtde) ? 0 : qtde,
+        },
       })
       return
     }

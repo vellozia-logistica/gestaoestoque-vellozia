@@ -42,7 +42,25 @@ export function parseSiacCSV(content: string): SiacParseResult {
     } else if (current && /01\.\d/.test(line)) {
       const loteMatch = line.match(/01\.\d[\d.-]+\s+(\S+)\s+(\d{2}\/\d{2}\/\d{4})\s+([\d.,]+)/)
       if (!loteMatch) {
-        inconsistencias.push({ id: crypto.randomUUID(), arquivo: 'siac', linhaNumero: i + 1, conteudo: raw.trim(), motivo: 'Linha de lote com data ou quantidade inválida', resolvido: false })
+        // Tenta extrair parcialmente lote e data para pré-preencher formulário
+        const parcial = line.match(/01\.\d[\d.-]+\s+(\S+)(?:\s+(\d{2}\/\d{2}\/\d{4}))?/)
+        inconsistencias.push({
+          id: crypto.randomUUID(),
+          arquivo: 'siac',
+          linhaNumero: i + 1,
+          conteudo: raw.trim(),
+          motivo: 'Linha de lote com data ou quantidade inválida',
+          resolvido: false,
+          contexto: {
+            codigo: current.codigo || '',
+            descricao: current.descricao || '',
+            unidade: current.unidade || '',
+            laboratorio: current.laboratorio || '',
+            lote: parcial?.[1] || '',
+            vencimento: parcial?.[2] || '',
+            estoque: 0,
+          },
+        })
         continue
       }
       const lote = loteMatch[1]
