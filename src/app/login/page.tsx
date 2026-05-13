@@ -136,9 +136,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-xs text-gray-400 text-center mt-8">
-            Senha padrão inicial: <code className="bg-gray-100 px-1 rounded">vellozia@2026</code>
-          </p>
         </div>
       </div>
     </div>

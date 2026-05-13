@@ -42,6 +42,8 @@ export const useStore = create<AppState>()(
         set(s => ({ inconsistencias: s.inconsistencias.map(i => i.id === id ? { ...i, resolvido: true } : i) })),
       clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') =>
         set(s => ({ inconsistencias: arquivo ? s.inconsistencias.filter(i => i.arquivo !== arquivo) : [] })),
+      limparInconsistenciasPendentes: () =>
+        set(s => ({ inconsistencias: s.inconsistencias.filter(i => i.resolvido) })),
 
       importadoEmSiac: null,
       importadoEmVellozia: null,

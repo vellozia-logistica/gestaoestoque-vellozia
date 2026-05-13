@@ -1,7 +1,7 @@
 'use client'
 import { useStore } from '@/lib/store'
 import { useState } from 'react'
-import { CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Check, X, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { SiacItem, VelloziaItem, RelacionamentoSiacVellozia, ContextoLinha } from '@/types'
 
@@ -244,7 +244,7 @@ function RelacionamentoForm({ formData, onSave, onCancel }: {
 }
 
 export default function InconsistenciasPage() {
-  const { inconsistencias, resolveInconsistencia, clearInconsistencias, addSiacItem, addVelloziaItem, addRelacionamento } = useStore()
+  const { inconsistencias, resolveInconsistencia, clearInconsistencias, limparInconsistenciasPendentes, addSiacItem, addVelloziaItem, addRelacionamento } = useStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
 
@@ -307,6 +307,18 @@ export default function InconsistenciasPage() {
           <h1 className="text-2xl font-bold text-gray-800">Inconsistências</h1>
           <p className="text-gray-500 mt-1">{pendentes.length} pendente(s) · {resolvidas.length} resolvida(s)</p>
         </div>
+        {pendentes.length > 0 && (
+          <button
+            onClick={() => {
+              if (!confirm(`Descartar ${pendentes.length} inconsistência(s) pendente(s)? Elas serão removidas sem ser corrigidas.`)) return
+              limparInconsistenciasPendentes()
+              setIndex(0)
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 shrink-0"
+          >
+            <Trash2 size={14} /> Limpar pendentes
+          </button>
+        )}
       </div>
 
       {/* Aviso */}

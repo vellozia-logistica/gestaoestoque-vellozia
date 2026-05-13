@@ -3,10 +3,33 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { User, UserRole } from '@/types'
-import { hashPassword, DEFAULT_HASH_MARKER, ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS } from '@/lib/auth'
-import { Plus, Trash2, KeyRound, Shield, X, Info, RotateCcw } from 'lucide-react'
+import { DEFAULT_HASH_MARKER, ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS } from '@/lib/auth'
+import { Plus, Trash2, KeyRound, Shield, X, Info, RotateCcw, Users, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 const EMPTY_FORM = { email: '', username: '', role: 'usuario' as UserRole }
+
+interface BulkRow { email: string; username: string; role: UserRole; ok: boolean; erro?: string }
+
+function parseBulkCSV(raw: string, existingEmails: Set<string>): BulkRow[] {
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))
+  return lines.map(line => {
+    const sep = line.includes(';') ? ';' : ','
+    const [emailRaw, usernameRaw, roleRaw] = line.split(sep).map(s => s.trim())
+    const email = emailRaw ?? ''
+    const username = usernameRaw ?? ''
+    const roleNorm = (roleRaw ?? 'usuario').toLowerCase()
+    const roleMap: Record<string, UserRole> = {
+      usuario: 'usuario', user: 'usuario',
+      desenvolvedor: 'desenvolvedor', dev: 'desenvolvedor',
+      administrador: 'administrador', admin: 'administrador',
+    }
+    const role: UserRole = roleMap[roleNorm] ?? 'usuario'
+    if (!email || !username) return { email, username, role, ok: false, erro: 'E-mail e nome obrigatórios' }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { email, username, role, ok: false, erro: 'E-mail inválido' }
+    if (existingEmails.has(email)) return { email, username, role, ok: false, erro: 'E-mail já cadastrado' }
+    return { email, username, role, ok: true }
+  })
+}
 
 export default function GestaoUsuarios() {
   const { users, currentUser, addUser, updateUser, deleteUser, setUsers, setCurrentUser } = useStore()
@@ -15,6 +38,9 @@ export default function GestaoUsuarios() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [resetId, setResetId] = useState<string | null>(null)
+  const [showBulk, setShowBulk] = useState(false)
+  const [bulkText, setBulkText] = useState('')
+  const [bulkRows, setBulkRows] = useState<BulkRow[]>([])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,6 +72,32 @@ export default function GestaoUsuarios() {
     }
   }
 
+  const handleBulkParse = (text: string) => {
+    setBulkText(text)
+    if (!text.trim()) { setBulkRows([]); return }
+    const existingEmails = new Set(users.map(u => u.email))
+    setBulkRows(parseBulkCSV(text, existingEmails))
+  }
+
+  const handleBulkImport = () => {
+    const valid = bulkRows.filter(r => r.ok)
+    if (valid.length === 0) return
+    valid.forEach(r => {
+      addUser({
+        id: crypto.randomUUID(),
+        email: r.email,
+        username: r.username,
+        passwordHash: DEFAULT_HASH_MARKER,
+        role: r.role,
+        mustChangePassword: true,
+        createdAt: new Date().toISOString(),
+      })
+    })
+    setShowBulk(false)
+    setBulkText('')
+    setBulkRows([])
+  }
+
   const handleResetAll = () => {
     if (!confirm('Isso vai apagar TODOS os usuários e deslogar. O sistema voltará ao estado inicial com o admin padrão. Continuar?')) return
     setUsers([])
@@ -71,7 +123,7 @@ export default function GestaoUsuarios() {
           <h1 className="text-2xl font-bold text-gray-800">Gestão de Usuários</h1>
           <p className="text-gray-500 mt-1">{users.length} usuário(s) cadastrado(s)</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {currentUser?.role === 'administrador' && (
             <button
               onClick={handleResetAll}
@@ -81,7 +133,13 @@ export default function GestaoUsuarios() {
             </button>
           )}
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { setShowBulk(!showBulk); setShowForm(false) }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
+          >
+            <Users size={15} /> Adicionar em massa
+          </button>
+          <button
+            onClick={() => { setShowForm(!showForm); setShowBulk(false) }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
             style={{ backgroundColor: '#4f2e87' }}
           >
@@ -159,6 +217,81 @@ export default function GestaoUsuarios() {
             {saving ? 'Criando…' : 'Criar usuário'}
           </button>
         </form>
+      )}
+
+      {/* Bulk import panel */}
+      {showBulk && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm">
+          <h2 className="font-semibold text-gray-700 mb-1">Adicionar usuários em massa</h2>
+          <p className="text-xs text-gray-500 mb-3">
+            Cole uma linha por usuário no formato: <code className="bg-gray-100 px-1 rounded">email, nome_usuario, papel</code>
+            {' '}— papel pode ser <code className="bg-gray-100 px-1 rounded">usuario</code>, <code className="bg-gray-100 px-1 rounded">desenvolvedor</code> ou <code className="bg-gray-100 px-1 rounded">administrador</code>.
+            Separador vírgula ou ponto-e-vírgula. Linhas com # são ignoradas.
+          </p>
+          <textarea
+            rows={6}
+            value={bulkText}
+            onChange={e => handleBulkParse(e.target.value)}
+            placeholder={`# Exemplo:\njoao@vellozia.com, joao.silva, usuario\nmaria@vellozia.com, maria.souza, administrador\npedro@vellozia.com, pedro.lima, desenvolvedor`}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+          />
+
+          {bulkRows.length > 0 && (
+            <div className="mt-4">
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-3 py-2 text-left font-semibold text-gray-500">E-mail</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-500">Usuário</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-500">Papel</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {bulkRows.map((r, i) => (
+                      <tr key={i} className={r.ok ? 'bg-white' : 'bg-red-50'}>
+                        <td className="px-3 py-2 font-mono text-gray-700">{r.email || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2 text-gray-700">{r.username || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-3 py-2">
+                          <span className={`px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[r.role]}`}>{ROLE_LABELS[r.role]}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {r.ok
+                            ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 size={12} /> OK</span>
+                            : <span className="flex items-center gap-1 text-red-500"><AlertTriangle size={12} /> {r.erro}</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center gap-3 mt-3">
+                <button
+                  onClick={handleBulkImport}
+                  disabled={bulkRows.filter(r => r.ok).length === 0}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-40"
+                  style={{ backgroundColor: '#4f2e87' }}
+                >
+                  <Users size={14} />
+                  Importar {bulkRows.filter(r => r.ok).length} usuário(s)
+                </button>
+                {bulkRows.some(r => !r.ok) && (
+                  <p className="text-xs text-red-500 flex items-center gap-1">
+                    <AlertTriangle size={12} /> {bulkRows.filter(r => !r.ok).length} linha(s) com erro serão ignoradas
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-4">
+            <Info size={13} />
+            Todos os usuários importados receberão a senha padrão e serão obrigados a trocá-la no primeiro acesso.
+          </div>
+        </div>
       )}
 
       {/* Users table */}

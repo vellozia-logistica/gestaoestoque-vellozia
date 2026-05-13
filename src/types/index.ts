@@ -106,6 +106,7 @@ export interface AppState {
   addInconsistencias: (items: Inconsistencia[]) => void
   resolveInconsistencia: (id: string) => void
   clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') => void
+  limparInconsistenciasPendentes: () => void
   setSidebarCollapsed: (v: boolean) => void
   sidebarConfig: SidebarConfig
   setSidebarConfig: (config: SidebarConfig) => void
