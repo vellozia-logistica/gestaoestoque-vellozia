@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight, ChevronLeft, Clock, LogOut, Settings, Folder, FolderOpen } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
+import { DEFAULT_SIDEBAR_CONFIG } from '@/lib/store'
 import { ROLE_LABELS, ROLE_COLORS } from '@/lib/auth'
 import { UserRole, SidebarPasta } from '@/types'
 import { MENU_ITEMS, MenuItem } from '@/lib/sidebarMenu'
@@ -89,11 +90,10 @@ export default function Sidebar() {
   const role = currentUser?.role ?? 'usuario'
   const visibleItems = MENU_ITEMS.filter(i => i.roles.includes(role))
 
-  const config = sidebarConfig ?? {
-    ordem: MENU_ITEMS.map(i => i.id),
-    pastas: [],
-    itemPasta: {},
-  }
+  // Migra config antigo (sem pastas) para o padrão novo automaticamente
+  const config = (sidebarConfig && sidebarConfig.pastas.length > 0)
+    ? sidebarConfig
+    : DEFAULT_SIDEBAR_CONFIG
 
   const renderList = buildRenderList(visibleItems, config.ordem, config.pastas, config.itemPasta)
 
@@ -229,6 +229,15 @@ export default function Sidebar() {
             return renderItem(entry.item)
           })}
         </nav>
+
+        {/* Crédito */}
+        {!collapsed && (
+          <div className="px-3 pb-1 text-center">
+            <p className="text-white opacity-40 leading-tight" style={{ fontSize: '9px' }}>
+              Vellozia 2026 · feito por Humberto Brandão Barbosa
+            </p>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="border-t border-purple-600 px-3 py-3">

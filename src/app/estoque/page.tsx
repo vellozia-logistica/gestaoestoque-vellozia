@@ -185,6 +185,34 @@ export default function EstoqueConsolidado() {
           </button>
 
           <button
+            onClick={() => {
+              const divergentesData = exportData.filter(e => e.divergencia)
+              const headers = [
+                'Produto', 'Grupo', 'ID SIAC', 'Lote', 'Vencimento',
+                'Goiânia (SIAC)', 'Goiânia (Vellozia)', 'Diferença',
+                ...displayFiliais, 'Total Vellozia',
+              ]
+              const rows = divergentesData.map(e => {
+                const gv = goianiaKey ? (e.filiais[goianiaKey] ?? 0) : 0
+                return [
+                  e.descricao, e.grupoProduto, e.idSiac, e.lote, e.vencimento,
+                  e.estoqueGoiania, gv, e.estoqueGoiania - gv,
+                  ...displayFiliais.map(f => e.filiais[f] ?? 0),
+                  e.totalVellozia,
+                ]
+              })
+              downloadExcel([headers, ...rows], 'divergencias.xlsx', 'Divergências')
+            }}
+            disabled={divergentes === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40"
+            style={{ backgroundColor: '#dc2626' }}
+            title="Exportar apenas divergências"
+          >
+            <AlertTriangle size={15} />
+            Divergências
+          </button>
+
+          <button
             onClick={handleExportJSON}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ backgroundColor: '#2563eb' }}

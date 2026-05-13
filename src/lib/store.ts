@@ -2,10 +2,18 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { AppState, SiacItem, VelloziaItem, IdProdutoGrupo, RelacionamentoSiacVellozia, Inconsistencia, User, SidebarConfig } from '@/types'
 
-const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  ordem: ['/', 'Importar Arquivos', '/relacionamentos', '/estoque', '/admin/usuarios', '/inconsistencias'],
-  pastas: [],
-  itemPasta: {},
+export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
+  ordem: [
+    'pasta:gestao-id',
+    '/admin/usuarios',
+  ],
+  pastas: [{ id: 'gestao-id', label: 'GESTÃO DE ID' }],
+  itemPasta: {
+    '/': 'gestao-id',
+    'Importar Arquivos': 'gestao-id',
+    '/estoque': 'gestao-id',
+    '/inconsistencias': 'gestao-id',
+  },
 }
 
 export const useStore = create<AppState>()(

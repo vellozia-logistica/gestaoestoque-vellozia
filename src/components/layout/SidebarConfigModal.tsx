@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { X, ChevronUp, ChevronDown, FolderPlus, Folder, FolderOpen, Trash2, GripVertical } from 'lucide-react'
+import { X, ChevronUp, ChevronDown, FolderPlus, Folder, FolderOpen, Trash2, GripVertical, RotateCcw } from 'lucide-react'
 import { SidebarConfig, SidebarPasta } from '@/types'
 import { MENU_ITEMS, MenuItem } from '@/lib/sidebarMenu'
 import { UserRole } from '@/types'
+import { DEFAULT_SIDEBAR_CONFIG } from '@/lib/store'
 
 interface Props {
   config: SidebarConfig
@@ -252,19 +253,31 @@ export default function SidebarConfigModal({ config, role, onSave, onClose }: Pr
         </div>
 
         {/* Ações */}
-        <div className="px-4 py-3 border-t border-gray-200 flex gap-2">
+        <div className="px-4 py-3 border-t border-gray-200 space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={handleSalvar}
+              className="flex-1 py-2 rounded-lg text-white text-sm font-medium"
+              style={{ backgroundColor: '#4f2e87' }}
+            >
+              Salvar configuração
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+          </div>
           <button
-            onClick={handleSalvar}
-            className="flex-1 py-2 rounded-lg text-white text-sm font-medium"
-            style={{ backgroundColor: '#4f2e87' }}
+            onClick={() => {
+              const defaultLista = buildLista(DEFAULT_SIDEBAR_CONFIG, visibleItems)
+              setLista(defaultLista)
+              setItemPasta({ ...DEFAULT_SIDEBAR_CONFIG.itemPasta })
+            }}
+            className="w-full flex items-center justify-center gap-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-xs hover:bg-gray-50"
           >
-            Salvar configuração
-          </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
-          >
-            Cancelar
+            <RotateCcw size={12} /> Restaurar configuração padrão
           </button>
         </div>
       </div>
