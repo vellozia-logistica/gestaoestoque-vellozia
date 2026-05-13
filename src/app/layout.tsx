@@ -8,7 +8,16 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Gestão de Estoque - Vellozia',
   description: 'Sistema de gestão e conciliação de estoques SIAC x Vellozia',
+  metadataBase: new URL('https://gestaoestoque-vellozia-production.up.railway.app'),
   icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
+  openGraph: {
+    title: 'Gestão de Estoque - Vellozia',
+    description: 'Sistema de gestão e conciliação de estoques SIAC x Vellozia',
+    url: 'https://gestaoestoque-vellozia-production.up.railway.app',
+    siteName: 'Vellozia Gestão de Estoque',
+    images: [{ url: '/logo.jpg', width: 200, height: 200, alt: 'Vellozia' }],
+    type: 'website',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

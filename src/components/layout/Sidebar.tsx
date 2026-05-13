@@ -2,10 +2,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronDown, ChevronRight, ChevronLeft, Clock, LogOut, Settings, Folder, FolderOpen } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronLeft, LogOut, Settings, Folder, FolderOpen, User as UserIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { useStore } from '@/lib/store'
-import { DEFAULT_SIDEBAR_CONFIG } from '@/lib/store'
+import { useStore, DEFAULT_SIDEBAR_CONFIG } from '@/lib/store'
 import { ROLE_LABELS, ROLE_COLORS } from '@/lib/auth'
 import { UserRole, SidebarPasta } from '@/types'
 import { MENU_ITEMS, MenuItem } from '@/lib/sidebarMenu'
@@ -44,14 +43,11 @@ function buildRenderList(
       }
     }
   }
-
-  // itens não incluídos na ordem
   for (const item of visibleItems) {
     if (!added.has(item.id) && !itemPasta[item.id]) {
       entries.push({ tipo: 'item', item })
     }
   }
-
   return entries
 }
 
@@ -61,18 +57,13 @@ export default function Sidebar() {
   const { sidebarCollapsed, setSidebarCollapsed, currentUser, setCurrentUser, inconsistencias, sidebarConfig, setSidebarConfig } = useStore()
   const pendentes = inconsistencias.filter(i => !i.resolvido).length
   const [openMenus, setOpenMenus] = useState<string[]>(['Importar Arquivos'])
-  const [openPastas, setOpenPastas] = useState<string[]>([])
-  const [sessionTime, setSessionTime] = useState('')
+  const [openPastas, setOpenPastas] = useState<string[]>(['gestao-id'])
   const [showConfig, setShowConfig] = useState(false)
+  const [now, setNow] = useState(new Date())
 
   useEffect(() => {
-    const key = 'gestao-session-start'
-    if (!sessionStorage.getItem(key)) sessionStorage.setItem(key, new Date().toISOString())
-    const start = new Date(sessionStorage.getItem(key)!)
-    setSessionTime(start.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    }))
+    const id = setInterval(() => setNow(new Date()), 30000)
+    return () => clearInterval(id)
   }, [])
 
   const handleLogout = () => {
@@ -90,12 +81,15 @@ export default function Sidebar() {
   const role = currentUser?.role ?? 'usuario'
   const visibleItems = MENU_ITEMS.filter(i => i.roles.includes(role))
 
-  // Migra config antigo (sem pastas) para o padrão novo automaticamente
   const config = (sidebarConfig && sidebarConfig.pastas.length > 0)
     ? sidebarConfig
     : DEFAULT_SIDEBAR_CONFIG
 
   const renderList = buildRenderList(visibleItems, config.ordem, config.pastas, config.itemPasta)
+
+  // Separa: pastas ficam no nav rolável; itens soltos ficam fixados na parte inferior
+  const pastaEntries = renderList.filter(e => e.tipo === 'pasta') as Extract<RenderEntry, { tipo: 'pasta' }>[]
+  const pinnedItems  = renderList.filter(e => e.tipo === 'item').map(e => (e as Extract<RenderEntry, { tipo: 'item' }>).item)
 
   const renderItem = (item: MenuItem, nested = false) => {
     const Icon = item.icon
@@ -161,6 +155,11 @@ export default function Sidebar() {
     )
   }
 
+  const dataHora = now.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+
   return (
     <>
       <aside
@@ -193,87 +192,89 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* Nav */}
+        {/* Nav rolável — somente pastas */}
         <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {renderList.map((entry, i) => {
-            if (entry.tipo === 'pasta') {
-              const { pasta, itens } = entry
-              const isOpen = openPastas.includes(pasta.id)
-              if (collapsed) {
-                return (
-                  <div key={pasta.id} className="space-y-0.5">
-                    {itens.map(item => renderItem(item))}
-                  </div>
-                )
-              }
+          {pastaEntries.map(entry => {
+            const { pasta, itens } = entry
+            const isOpen = openPastas.includes(pasta.id)
+            if (collapsed) {
               return (
-                <div key={pasta.id}>
-                  <button
-                    onClick={() => togglePasta(pasta.id)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-purple-300 hover:bg-purple-700 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider"
-                  >
-                    {isOpen
-                      ? <FolderOpen size={13} className="shrink-0" />
-                      : <Folder size={13} className="shrink-0" />}
-                    <span className="flex-1 text-left truncate">{pasta.label}</span>
-                    {isOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                  </button>
-                  {isOpen && (
-                    <div className="ml-3 mt-0.5 space-y-0.5 border-l border-purple-600 pl-2">
-                      {itens.map(item => renderItem(item, true))}
-                    </div>
-                  )}
+                <div key={pasta.id} className="space-y-0.5">
+                  {itens.map(item => renderItem(item))}
                 </div>
               )
             }
-            return renderItem(entry.item)
+            return (
+              <div key={pasta.id}>
+                <button
+                  onClick={() => togglePasta(pasta.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-purple-300 hover:bg-purple-700 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider"
+                >
+                  {isOpen
+                    ? <FolderOpen size={13} className="shrink-0" />
+                    : <Folder size={13} className="shrink-0" />}
+                  <span className="flex-1 text-left truncate">{pasta.label}</span>
+                  {isOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                </button>
+                {isOpen && (
+                  <div className="ml-3 mt-0.5 space-y-0.5 border-l border-purple-600 pl-2">
+                    {itens.map(item => renderItem(item, true))}
+                  </div>
+                )}
+              </div>
+            )
           })}
         </nav>
 
-        {/* Crédito */}
-        {!collapsed && (
-          <div className="px-3 pb-1 text-center">
-            <p className="text-white opacity-40 leading-tight" style={{ fontSize: '9px' }}>
-              Vellozia 2026 · feito por Humberto Brandão Barbosa
-            </p>
-          </div>
-        )}
+        {/* Seção fixada — itens soltos + info de sessão */}
+        <div className="px-2 pb-2 space-y-0.5 border-t border-purple-700 pt-2">
+          {/* Itens não agrupados (ex: Gestão de Usuários) */}
+          {pinnedItems.map(item => renderItem(item))}
 
-        {/* Footer */}
-        <div className="border-t border-purple-600 px-3 py-3">
-          {!collapsed ? (
-            <div className="space-y-2">
+          {/* Info: usuário logado + data/hora */}
+          {!collapsed && (
+            <div className="mt-2 rounded-lg px-3 py-2 space-y-1" style={{ backgroundColor: 'rgba(0,0,0,0.18)' }}>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                   style={{ backgroundColor: '#6d3eab' }}>
-                  {currentUser?.username?.[0]?.toUpperCase() ?? 'U'}
+                  {currentUser?.username?.[0]?.toUpperCase() ?? <UserIcon size={12} />}
                 </div>
-                <div className="overflow-hidden flex-1">
-                  <p className="text-white text-xs font-medium truncate">{currentUser?.username}</p>
+                <div className="overflow-hidden flex-1 min-w-0">
+                  <p className="text-white text-xs font-semibold truncate">{currentUser?.username}</p>
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ROLE_COLORS[role]}`}>
                     {ROLE_LABELS[role]}
                   </span>
                 </div>
-                <button
-                  onClick={() => setShowConfig(true)}
-                  title="Configurar menu"
-                  className="p-1.5 rounded-lg text-purple-400 hover:bg-purple-700 hover:text-white transition-colors shrink-0"
-                >
-                  <Settings size={14} />
-                </button>
               </div>
-              {sessionTime && (
-                <div className="flex items-center gap-1 text-purple-400 text-xs">
-                  <Clock size={10} />
-                  <span className="truncate">{sessionTime}</span>
-                </div>
-              )}
+              <p className="text-purple-300 text-xs font-mono">{dataHora}</p>
+            </div>
+          )}
+
+          {/* Crédito */}
+          {!collapsed && (
+            <p className="text-center text-white opacity-30 pt-1 leading-tight" style={{ fontSize: '9px' }}>
+              Vellozia 2026 · feito por Humberto Brandão Barbosa
+            </p>
+          )}
+        </div>
+
+        {/* Footer — configurar menu + sair */}
+        <div className="border-t border-purple-600 px-3 py-2">
+          {!collapsed ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowConfig(true)}
+                title="Configurar menu"
+                className="flex items-center gap-2 flex-1 px-2 py-1.5 rounded-lg text-purple-300 hover:bg-purple-700 hover:text-white transition-colors text-xs"
+              >
+                <Settings size={13} /> Configurar menu
+              </button>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-purple-300 hover:bg-purple-700 hover:text-white transition-colors text-xs"
+                title="Sair"
+                className="p-1.5 rounded-lg text-purple-400 hover:bg-purple-700 hover:text-white transition-colors"
               >
-                <LogOut size={13} />
-                Sair
+                <LogOut size={14} />
               </button>
             </div>
           ) : (
