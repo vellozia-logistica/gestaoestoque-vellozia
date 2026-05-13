@@ -81,6 +81,7 @@ export interface User {
   role: UserRole
   mustChangePassword: boolean
   createdAt: string
+  telas?: string[]   // hrefs permitidos; undefined = usa padrão do papel
 }
 
 export interface AppState {

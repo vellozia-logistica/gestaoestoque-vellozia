@@ -79,7 +79,20 @@ export default function Sidebar() {
 
   const collapsed = sidebarCollapsed
   const role = currentUser?.role ?? 'usuario'
-  const visibleItems = MENU_ITEMS.filter(i => i.roles.includes(role))
+  const telas = currentUser?.telas
+
+  const visibleItems = MENU_ITEMS
+    .filter(i => i.roles.includes(role))
+    .flatMap(item => {
+      if (!telas) return [item]
+      if (item.children) {
+        const childrenFiltrados = item.children.filter(c => telas.includes(c.href))
+        if (childrenFiltrados.length === 0) return []
+        return [{ ...item, children: childrenFiltrados }]
+      }
+      if (item.href && !telas.includes(item.href)) return []
+      return [item]
+    })
 
   const config = (sidebarConfig && sidebarConfig.pastas.length > 0)
     ? sidebarConfig

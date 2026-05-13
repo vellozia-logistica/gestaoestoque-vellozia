@@ -1,6 +1,13 @@
 import { LayoutDashboard, Upload, GitMerge, PackageSearch, FileText, Tag, Users, AlertTriangle } from 'lucide-react'
 import { UserRole } from '@/types'
 
+export interface TelaInfo {
+  href: string
+  label: string
+  groupLabel?: string
+  roles: UserRole[]
+}
+
 export interface MenuChild {
   label: string
   href: string
@@ -18,6 +25,9 @@ export interface MenuItem {
   children?: MenuChild[]
   badge?: boolean
 }
+
+// Todas as telas controláveis individualmente (hrefs planos)
+export const ALL_TELAS: TelaInfo[] = []  // preenchido após MENU_ITEMS
 
 export const MENU_ITEMS: MenuItem[] = [
   {
@@ -67,3 +77,12 @@ export const MENU_ITEMS: MenuItem[] = [
     badge: true,
   },
 ]
+
+// Preenche ALL_TELAS a partir de MENU_ITEMS (executado uma vez no módulo)
+MENU_ITEMS.forEach(item => {
+  if (item.children) {
+    item.children.forEach(c => ALL_TELAS.push({ href: c.href, label: c.label, groupLabel: item.label, roles: item.roles }))
+  } else if (item.href) {
+    ALL_TELAS.push({ href: item.href, label: item.label, roles: item.roles })
+  }
+})

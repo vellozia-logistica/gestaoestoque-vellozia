@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { User, UserRole } from '@/types'
 import { DEFAULT_HASH_MARKER, ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS } from '@/lib/auth'
-import { Plus, Trash2, KeyRound, Shield, X, Info, RotateCcw, Users, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, KeyRound, Shield, X, Info, RotateCcw, Users, AlertTriangle, CheckCircle2, Monitor } from 'lucide-react'
+import { ALL_TELAS } from '@/lib/sidebarMenu'
 
 const EMPTY_FORM = { email: '', username: '', role: 'usuario' as UserRole }
 
@@ -31,6 +32,98 @@ function parseBulkCSV(raw: string, existingEmails: Set<string>): BulkRow[] {
   })
 }
 
+function TelaControlModal({ user, onSave, onClose }: { user: User; onSave: (telas: string[] | undefined) => void; onClose: () => void }) {
+  const telasDoRole = ALL_TELAS.filter(t => t.roles.includes(user.role))
+  const usandoPadrao = !user.telas
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(
+    new Set(user.telas ?? telasDoRole.map(t => t.href))
+  )
+  const [padrao, setPadrao] = useState(usandoPadrao)
+
+  const toggle = (href: string) => {
+    setSelecionadas(prev => {
+      const next = new Set(prev)
+      if (next.has(href)) next.delete(href)
+      else next.add(href)
+      return next
+    })
+  }
+
+  const handleSave = () => {
+    onSave(padrao ? undefined : Array.from(selecionadas))
+  }
+
+  // Agrupa por groupLabel
+  const grupos: Record<string, typeof telasDoRole> = {}
+  telasDoRole.forEach(t => {
+    const g = t.groupLabel ?? '—'
+    if (!grupos[g]) grupos[g] = []
+    grupos[g].push(t)
+  })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#4f2e87' }}>
+          <div>
+            <p className="text-white font-semibold">Controle de telas</p>
+            <p className="text-purple-300 text-xs">{user.username} · {ROLE_LABELS[user.role]}</p>
+          </div>
+          <button onClick={onClose} className="text-purple-300 hover:text-white"><X size={18} /></button>
+        </div>
+
+        <div className="px-5 py-3 border-b border-gray-100">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={padrao}
+              onChange={e => { setPadrao(e.target.checked); if (e.target.checked) setSelecionadas(new Set(telasDoRole.map(t => t.href))) }}
+              className="w-4 h-4 accent-purple-600"
+            />
+            <span className="text-sm text-gray-700 font-medium">Usar padrão do papel (acesso total do nível)</span>
+          </label>
+        </div>
+
+        <div className="px-5 py-3 max-h-96 overflow-y-auto space-y-4">
+          {Object.entries(grupos).map(([grupo, telas]) => (
+            <div key={grupo}>
+              {grupo !== '—' && <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{grupo}</p>}
+              <div className="space-y-1">
+                {telas.map(t => (
+                  <label key={t.href} className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${padrao ? 'opacity-40 pointer-events-none' : 'hover:bg-gray-50'}`}>
+                    <input
+                      type="checkbox"
+                      checked={selecionadas.has(t.href)}
+                      onChange={() => toggle(t.href)}
+                      disabled={padrao}
+                      className="w-4 h-4 accent-purple-600 shrink-0"
+                    />
+                    <span className="text-sm text-gray-700">{t.label}</span>
+                    <code className="ml-auto text-xs text-gray-400 font-mono">{t.href}</code>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-100 flex gap-2">
+          <button
+            onClick={handleSave}
+            className="flex-1 py-2 rounded-lg text-white text-sm font-medium"
+            style={{ backgroundColor: '#4f2e87' }}
+          >
+            Salvar permissões
+          </button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function GestaoUsuarios() {
   const { users, currentUser, addUser, updateUser, deleteUser, setUsers, setCurrentUser } = useStore()
   const router = useRouter()
@@ -41,6 +134,7 @@ export default function GestaoUsuarios() {
   const [showBulk, setShowBulk] = useState(false)
   const [bulkText, setBulkText] = useState('')
   const [bulkRows, setBulkRows] = useState<BulkRow[]>([])
+  const [telaUser, setTelaUser] = useState<User | null>(null)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -338,6 +432,13 @@ export default function GestaoUsuarios() {
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
                     <button
+                      onClick={() => setTelaUser(user)}
+                      title="Controle de telas"
+                      className={`p-1.5 rounded-lg transition-colors ${user.telas ? 'text-purple-600 bg-purple-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                    >
+                      <Monitor size={15} />
+                    </button>
+                    <button
                       onClick={() => handleResetPassword(user.id)}
                       disabled={resetId === user.id}
                       title="Redefinir senha para padrão"
@@ -360,6 +461,14 @@ export default function GestaoUsuarios() {
           </tbody>
         </table>
       </div>
+
+      {telaUser && (
+        <TelaControlModal
+          user={telaUser}
+          onSave={telas => { updateUser(telaUser.id, { telas }); setTelaUser(null) }}
+          onClose={() => setTelaUser(null)}
+        />
+      )}
     </div>
   )
 }
