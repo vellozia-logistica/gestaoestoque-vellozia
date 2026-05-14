@@ -2,8 +2,8 @@
 import { useStore } from '@/lib/store'
 import { buildEstoqueConsolidado, getFiliais } from '@/lib/estoque'
 import { downloadExcel, downloadJSON } from '@/lib/excel'
-import { useState, useMemo } from 'react'
-import { Search, AlertCircle, AlertTriangle, CheckCircle2, FileDown, FileJson, Clock } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { Search, AlertCircle, AlertTriangle, CheckCircle2, FileDown, FileJson, Clock, Eye } from 'lucide-react'
 import Link from 'next/link'
 
 function fmtTs(iso: string | null): string {
@@ -14,12 +14,47 @@ function fmtTs(iso: string | null): string {
   })
 }
 
+const FIXED_COLS = [
+  { key: 'produto', label: 'Produto' },
+  { key: 'lote', label: 'Lote' },
+  { key: 'vencimento', label: 'Vencimento' },
+  { key: 'goi_siac', label: 'Goi. SIAC' },
+  { key: 'goi_vellozia', label: 'Goi. Vellozia' },
+  { key: 'diferenca', label: 'Diferença' },
+  { key: 'total_vell', label: 'Total Vell.' },
+  { key: 'ok', label: 'OK' },
+]
+
 export default function EstoqueConsolidado() {
   const { siacItems, velloziaItems, idProdutoGrupo, relacionamentos,
     importadoEmSiac, importadoEmVellozia, importadoEmRelacionamento, importadoEmIdProduto } = useStore()
   const [search, setSearch] = useState('')
   const [filtro, setFiltro] = useState<'todos' | 'divergentes'>('todos')
   const [filialExport, setFilialExport] = useState<string>('todas')
+  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set())
+  const [colMenuOpen, setColMenuOpen] = useState(false)
+  const colMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setColMenuOpen(false)
+      }
+    }
+    if (colMenuOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [colMenuOpen])
+
+  const toggleCol = (key: string) => {
+    setHiddenCols(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const vis = (key: string) => !hiddenCols.has(key)
 
   const allLoaded = siacItems.length > 0 && velloziaItems.length > 0 && idProdutoGrupo.length > 0 && relacionamentos.length > 0
 
@@ -121,6 +156,9 @@ export default function EstoqueConsolidado() {
     )
   }
 
+  const filialCols = displayFiliais.map(f => ({ key: `filial_${f}`, label: f }))
+  const allCols = [...FIXED_COLS, ...filialCols]
+
   return (
     <div className="p-8">
       <div className="mb-6">
@@ -186,6 +224,51 @@ export default function EstoqueConsolidado() {
             onChange={e => setSearch(e.target.value)}
             className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 w-56"
           />
+        </div>
+
+        {/* Visibilidade de colunas */}
+        <div className="relative" ref={colMenuRef}>
+          <button
+            onClick={() => setColMenuOpen(v => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${colMenuOpen ? 'border-purple-400 bg-purple-50 text-purple-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            <Eye size={14} />
+            Colunas
+            {hiddenCols.size > 0 && (
+              <span className="ml-0.5 bg-purple-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                {hiddenCols.size}
+              </span>
+            )}
+          </button>
+          {colMenuOpen && (
+            <div className="absolute top-full left-0 mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[190px]">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Visibilidade das colunas</p>
+              <div className="space-y-1">
+                {allCols.map(col => (
+                  <label
+                    key={col.key}
+                    className="flex items-center gap-2 cursor-pointer py-0.5 text-sm text-gray-700 hover:text-gray-900 select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={vis(col.key)}
+                      onChange={() => toggleCol(col.key)}
+                      className="accent-purple-600 w-3.5 h-3.5 shrink-0"
+                    />
+                    {col.label}
+                  </label>
+                ))}
+              </div>
+              {hiddenCols.size > 0 && (
+                <button
+                  onClick={() => setHiddenCols(new Set())}
+                  className="mt-2.5 w-full text-xs text-purple-600 hover:underline text-left"
+                >
+                  Mostrar todas
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Export controls */}
@@ -254,17 +337,17 @@ export default function EstoqueConsolidado() {
         <table className="w-full text-xs">
           <thead>
             <tr style={{ backgroundColor: '#4f2e87' }} className="text-white">
-              <th className="px-3 py-2.5 text-left font-medium">Produto</th>
-              <th className="px-2 py-2.5 text-left font-medium whitespace-nowrap">Lote</th>
-              <th className="px-2 py-2.5 text-left font-medium whitespace-nowrap">Vencimento</th>
-              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Goi. SIAC</th>
-              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Goi. Vellozia</th>
-              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Diferença</th>
-              {displayFiliais.map(f => (
+              {vis('produto') && <th className="px-3 py-2.5 text-left font-medium">Produto</th>}
+              {vis('lote') && <th className="px-2 py-2.5 text-left font-medium whitespace-nowrap">Lote</th>}
+              {vis('vencimento') && <th className="px-2 py-2.5 text-left font-medium whitespace-nowrap">Vencimento</th>}
+              {vis('goi_siac') && <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Goi. SIAC</th>}
+              {vis('goi_vellozia') && <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Goi. Vellozia</th>}
+              {vis('diferenca') && <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Diferença</th>}
+              {displayFiliais.map(f => vis(`filial_${f}`) && (
                 <th key={f} className="px-2 py-2.5 text-right font-medium whitespace-nowrap">{f}</th>
               ))}
-              <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Total Vell.</th>
-              <th className="px-2 py-2.5 text-center font-medium">OK</th>
+              {vis('total_vell') && <th className="px-2 py-2.5 text-right font-medium whitespace-nowrap">Total Vell.</th>}
+              {vis('ok') && <th className="px-2 py-2.5 text-center font-medium">OK</th>}
             </tr>
           </thead>
           <tbody>
@@ -273,36 +356,48 @@ export default function EstoqueConsolidado() {
               const diferenca = item.estoqueGoiania - goianiaVellozia
               return (
                 <tr key={i} className={item.divergencia ? 'bg-red-50' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-3 py-1.5 max-w-[180px]">
-                    <div className="font-medium text-gray-800 truncate">{item.descricao}</div>
-                    <div className="text-gray-400 font-mono" style={{ fontSize: '10px' }}>G{item.grupoProduto}·S{item.idSiac}</div>
-                  </td>
-                  <td className="px-2 py-1.5 text-gray-600 font-mono whitespace-nowrap">{item.lote}</td>
-                  <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{item.vencimento}</td>
-                  <td className="px-2 py-1.5 text-right font-medium text-blue-700 whitespace-nowrap">
-                    {item.estoqueGoiania.toLocaleString('pt-BR')}
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-medium text-green-700 whitespace-nowrap">
-                    {goianiaVellozia.toLocaleString('pt-BR')}
-                  </td>
-                  <td className={`px-2 py-1.5 text-right font-bold whitespace-nowrap ${diferenca === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {diferenca > 0 ? '+' : ''}{diferenca.toLocaleString('pt-BR')}
-                  </td>
-                  {displayFiliais.map(f => (
+                  {vis('produto') && (
+                    <td className="px-3 py-1.5 max-w-[180px]">
+                      <div className="font-medium text-gray-800 truncate">{item.descricao}</div>
+                      <div className="text-gray-400 font-mono" style={{ fontSize: '10px' }}>G{item.grupoProduto}·S{item.idSiac}</div>
+                    </td>
+                  )}
+                  {vis('lote') && <td className="px-2 py-1.5 text-gray-600 font-mono whitespace-nowrap">{item.lote}</td>}
+                  {vis('vencimento') && <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{item.vencimento}</td>}
+                  {vis('goi_siac') && (
+                    <td className="px-2 py-1.5 text-right font-medium text-blue-700 whitespace-nowrap">
+                      {item.estoqueGoiania.toLocaleString('pt-BR')}
+                    </td>
+                  )}
+                  {vis('goi_vellozia') && (
+                    <td className="px-2 py-1.5 text-right font-medium text-green-700 whitespace-nowrap">
+                      {goianiaVellozia.toLocaleString('pt-BR')}
+                    </td>
+                  )}
+                  {vis('diferenca') && (
+                    <td className={`px-2 py-1.5 text-right font-bold whitespace-nowrap ${diferenca === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {diferenca > 0 ? '+' : ''}{diferenca.toLocaleString('pt-BR')}
+                    </td>
+                  )}
+                  {displayFiliais.map(f => vis(`filial_${f}`) && (
                     <td key={f} className="px-2 py-1.5 text-right text-gray-700 whitespace-nowrap">
                       {(item.filiais[f] ?? 0).toLocaleString('pt-BR')}
                     </td>
                   ))}
-                  <td className="px-2 py-1.5 text-right font-medium text-gray-800 whitespace-nowrap">
-                    {item.totalVellozia.toLocaleString('pt-BR')}
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    {item.divergencia ? (
-                      <AlertTriangle size={13} className="text-red-500 inline" />
-                    ) : (
-                      <CheckCircle2 size={13} className="text-green-500 inline" />
-                    )}
-                  </td>
+                  {vis('total_vell') && (
+                    <td className="px-2 py-1.5 text-right font-medium text-gray-800 whitespace-nowrap">
+                      {item.totalVellozia.toLocaleString('pt-BR')}
+                    </td>
+                  )}
+                  {vis('ok') && (
+                    <td className="px-2 py-1.5 text-center">
+                      {item.divergencia ? (
+                        <AlertTriangle size={13} className="text-red-500 inline" />
+                      ) : (
+                        <CheckCircle2 size={13} className="text-green-500 inline" />
+                      )}
+                    </td>
+                  )}
                 </tr>
               )
             })}
