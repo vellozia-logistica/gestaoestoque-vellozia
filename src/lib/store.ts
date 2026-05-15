@@ -1,12 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { AppState, SiacItem, VelloziaItem, IdProdutoGrupo, RelacionamentoSiacVellozia, Inconsistencia, User, SidebarConfig } from '@/types'
+import { AppState, SiacItem, VelloziaItem, IdProdutoGrupo, RelacionamentoSiacVellozia, Inconsistencia, SidebarConfig } from '@/types'
 
 export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  ordem: [
-    'pasta:gestao-id',
-    '/admin/usuarios',
-  ],
+  ordem: ['pasta:gestao-id'],
   pastas: [{ id: 'gestao-id', label: 'GESTÃO DE ID' }],
   itemPasta: {
     '/': 'gestao-id',
@@ -25,8 +22,11 @@ export const useStore = create<AppState>()(
       relacionamentos: [],
       inconsistencias: [],
       sidebarCollapsed: false,
-      users: [],
-      currentUser: null,
+      importadoEmSiac: null,
+      importadoEmVellozia: null,
+      importadoEmRelacionamento: null,
+      importadoEmIdProduto: null,
+      sidebarConfig: DEFAULT_SIDEBAR_CONFIG,
 
       setSiacItems: (items: SiacItem[]) => set({ siacItems: items }),
       addSiacItem: (item: SiacItem) => set(s => ({ siacItems: [...s.siacItems, item] })),
@@ -45,27 +45,12 @@ export const useStore = create<AppState>()(
       limparInconsistenciasPendentes: () =>
         set(s => ({ inconsistencias: s.inconsistencias.filter(i => i.resolvido) })),
 
-      importadoEmSiac: null,
-      importadoEmVellozia: null,
-      importadoEmRelacionamento: null,
-      importadoEmIdProduto: null,
+      setSidebarCollapsed: (v: boolean) => set({ sidebarCollapsed: v }),
+      setSidebarConfig: (config: SidebarConfig) => set({ sidebarConfig: config }),
       setImportadoEmSiac: (v) => set({ importadoEmSiac: v }),
       setImportadoEmVellozia: (v) => set({ importadoEmVellozia: v }),
       setImportadoEmRelacionamento: (v) => set({ importadoEmRelacionamento: v }),
       setImportadoEmIdProduto: (v) => set({ importadoEmIdProduto: v }),
-
-      sidebarConfig: DEFAULT_SIDEBAR_CONFIG,
-      setSidebarConfig: (config: SidebarConfig) => set({ sidebarConfig: config }),
-      setSidebarCollapsed: (v: boolean) => set({ sidebarCollapsed: v }),
-      setCurrentUser: (user: User | null) => set({ currentUser: user }),
-      setUsers: (users: User[]) => set({ users }),
-      addUser: (user: User) => set(s => ({ users: [...s.users, user] })),
-      updateUser: (id: string, updates: Partial<User>) =>
-        set(s => ({
-          users: s.users.map(u => u.id === id ? { ...u, ...updates } : u),
-          currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...updates } : s.currentUser,
-        })),
-      deleteUser: (id: string) => set(s => ({ users: s.users.filter(u => u.id !== id) })),
     }),
     { name: 'gestao-estoque-storage' }
   )

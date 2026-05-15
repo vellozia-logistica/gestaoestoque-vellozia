@@ -71,19 +71,6 @@ export interface SidebarConfig {
   itemPasta: Record<string, string> // itemId → pastaId
 }
 
-export type UserRole = 'usuario' | 'desenvolvedor' | 'administrador'
-
-export interface User {
-  id: string
-  email: string
-  username: string
-  passwordHash: string
-  role: UserRole
-  mustChangePassword: boolean
-  createdAt: string
-  telas?: string[]   // hrefs permitidos; undefined = usa padrão do papel
-}
-
 export interface AppState {
   siacItems: SiacItem[]
   velloziaItems: VelloziaItem[]
@@ -91,12 +78,11 @@ export interface AppState {
   relacionamentos: RelacionamentoSiacVellozia[]
   inconsistencias: Inconsistencia[]
   sidebarCollapsed: boolean
-  users: User[]
-  currentUser: User | null
   importadoEmSiac: string | null
   importadoEmVellozia: string | null
   importadoEmRelacionamento: string | null
   importadoEmIdProduto: string | null
+  sidebarConfig: SidebarConfig
   setSiacItems: (items: SiacItem[]) => void
   addSiacItem: (item: SiacItem) => void
   setVelloziaItems: (items: VelloziaItem[]) => void
@@ -109,13 +95,7 @@ export interface AppState {
   clearInconsistencias: (arquivo?: 'siac' | 'vellozia' | 'relacionamento') => void
   limparInconsistenciasPendentes: () => void
   setSidebarCollapsed: (v: boolean) => void
-  sidebarConfig: SidebarConfig
   setSidebarConfig: (config: SidebarConfig) => void
-  setCurrentUser: (user: User | null) => void
-  setUsers: (users: User[]) => void
-  addUser: (user: User) => void
-  updateUser: (id: string, updates: Partial<User>) => void
-  deleteUser: (id: string) => void
   setImportadoEmSiac: (v: string | null) => void
   setImportadoEmVellozia: (v: string | null) => void
   setImportadoEmRelacionamento: (v: string | null) => void

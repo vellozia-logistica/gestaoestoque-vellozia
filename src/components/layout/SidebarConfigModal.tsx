@@ -3,12 +3,10 @@ import { useState } from 'react'
 import { X, ChevronUp, ChevronDown, FolderPlus, Folder, FolderOpen, Trash2, GripVertical, RotateCcw } from 'lucide-react'
 import { SidebarConfig, SidebarPasta } from '@/types'
 import { MENU_ITEMS, MenuItem } from '@/lib/sidebarMenu'
-import { UserRole } from '@/types'
 import { DEFAULT_SIDEBAR_CONFIG } from '@/lib/store'
 
 interface Props {
   config: SidebarConfig
-  role: UserRole
   onSave: (config: SidebarConfig) => void
   onClose: () => void
 }
@@ -49,8 +47,8 @@ function buildOrdem(lista: EntradaLista[]): string[] {
   )
 }
 
-export default function SidebarConfigModal({ config, role, onSave, onClose }: Props) {
-  const visibleItems = MENU_ITEMS.filter(i => i.roles.includes(role))
+export default function SidebarConfigModal({ config, onSave, onClose }: Props) {
+  const visibleItems = MENU_ITEMS
   const [lista, setLista] = useState<EntradaLista[]>(() => buildLista(config, visibleItems))
   const [itemPasta, setItemPasta] = useState<Record<string, string>>({ ...config.itemPasta })
   const [novaFolderLabel, setNovaFolderLabel] = useState('')
