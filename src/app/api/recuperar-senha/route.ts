@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createResetToken } from '@/lib/reset-token'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = process.env.RESEND_FROM ?? 'Vellozia Estoque <onboarding@resend.dev>'
-
 export async function POST(req: Request) {
   try {
     const { email } = (await req.json()) as { email: string }
     if (!email) return NextResponse.json({ error: 'E-mail obrigatório' }, { status: 400 })
 
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const FROM = process.env.RESEND_FROM ?? 'Vellozia Estoque <onboarding@resend.dev>'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
     const token = createResetToken(email.toLowerCase().trim())
     const link = `${appUrl}/recuperar-senha?token=${token}`
