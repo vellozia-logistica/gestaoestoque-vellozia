@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Eye, EyeOff, Lock, Mail, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, User, X, CheckCircle, AlertCircle, Loader2, Send } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { verifyPassword, DEFAULT_HASH_MARKER, DEFAULT_PASSWORD, ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS } from '@/lib/auth'
 
@@ -16,6 +16,16 @@ const DEFAULT_ADMIN = {
   createdAt: new Date().toISOString(),
 }
 
+type ModalView = 'select' | 'senha-local' | 'senha-email' | 'email-usuario'
+
+function maskEmail(email: string) {
+  const [local, domain] = email.split('@')
+  if (!domain) return email
+  const visible = local.slice(0, 2)
+  const masked = '*'.repeat(Math.max(local.length - 2, 3))
+  return `${visible}${masked}@${domain}`
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { users, setUsers, setCurrentUser, currentUser, updateUser } = useStore()
@@ -25,38 +35,28 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Recuperar senha
-  const [showRecovery, setShowRecovery] = useState(false)
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [view, setView] = useState<ModalView>('select')
+
+  // Esqueci senha — local reset
   const [recoveryEmail, setRecoveryEmail] = useState('')
-  const [recoveryStatus, setRecoveryStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  const [recoveryLoading, setRecoveryLoading] = useState(false)
+  const [localStatus, setLocalStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
-  const handleRecovery = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setRecoveryLoading(true)
-    setRecoveryStatus('idle')
-    try {
-      const user = users.find(u => u.email.toLowerCase() === recoveryEmail.trim().toLowerCase())
-      if (!user) { setRecoveryStatus('error'); return }
-      updateUser(user.id, { passwordHash: DEFAULT_HASH_MARKER, mustChangePassword: true })
-      setRecoveryStatus('success')
-    } finally {
-      setRecoveryLoading(false)
-    }
-  }
+  // Esqueci senha — por e-mail
+  const [emailSendAddr, setEmailSendAddr] = useState('')
+  const [emailSendStatus, setEmailSendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
 
-  const closeRecovery = () => {
-    setShowRecovery(false)
-    setRecoveryEmail('')
-    setRecoveryStatus('idle')
-  }
+  // Esqueci meu e-mail
+  const [usernameQuery, setUsernameQuery] = useState('')
+  const [foundEmail, setFoundEmail] = useState<string | null>(null)
+  const [showFullEmail, setShowFullEmail] = useState(false)
+  const [emailQueryError, setEmailQueryError] = useState('')
 
-  // Seed default admin if no users exist
   useEffect(() => {
     if (users.length === 0) setUsers([DEFAULT_ADMIN])
   }, [users, setUsers])
 
-  // Already logged in
   useEffect(() => {
     if (currentUser) {
       if (currentUser.mustChangePassword) router.replace('/trocar-senha')
@@ -79,6 +79,58 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const closeModal = () => {
+    setShowModal(false)
+    setView('select')
+    setRecoveryEmail('')
+    setLocalStatus('idle')
+    setEmailSendAddr('')
+    setEmailSendStatus('idle')
+    setUsernameQuery('')
+    setFoundEmail(null)
+    setShowFullEmail(false)
+    setEmailQueryError('')
+  }
+
+  const handleLocalReset = (e: React.FormEvent) => {
+    e.preventDefault()
+    const user = users.find(u => u.email.toLowerCase() === recoveryEmail.trim().toLowerCase())
+    if (!user) { setLocalStatus('error'); return }
+    updateUser(user.id, { passwordHash: DEFAULT_HASH_MARKER, mustChangePassword: true })
+    setLocalStatus('success')
+  }
+
+  const handleEmailSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const addr = emailSendAddr.trim().toLowerCase()
+    const user = users.find(u => u.email.toLowerCase() === addr)
+    if (!user) {
+      setEmailSendStatus('sent') // não revelar se e-mail existe
+      return
+    }
+    setEmailSendStatus('sending')
+    try {
+      const res = await fetch('/api/recuperar-senha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: addr }),
+      })
+      setEmailSendStatus(res.ok ? 'sent' : 'error')
+    } catch {
+      setEmailSendStatus('error')
+    }
+  }
+
+  const handleEmailQuery = (e: React.FormEvent) => {
+    e.preventDefault()
+    setEmailQueryError('')
+    setFoundEmail(null)
+    setShowFullEmail(false)
+    const user = users.find(u => u.username.toLowerCase() === usernameQuery.trim().toLowerCase())
+    if (!user) { setEmailQueryError('Usuário não encontrado.'); return }
+    setFoundEmail(user.email)
   }
 
   return (
@@ -164,89 +216,239 @@ export default function LoginPage() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setShowRecovery(true)}
+                onClick={() => { setShowModal(true); setView('select') }}
                 className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors"
               >
-                Esqueci minha senha
+                Esqueci minha senha / e-mail
               </button>
             </div>
           </form>
-
         </div>
       </div>
 
-      {/* Modal recuperar senha */}
-      {showRecovery && (
+      {/* Modal */}
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8 relative">
-            <button
-              onClick={closeRecovery}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            >
+            <button onClick={closeModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
               <X size={20} />
             </button>
 
-            <h3 className="text-xl font-bold text-gray-800 mb-1">Recuperar senha</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Informe seu e-mail. Sua senha será redefinida para o padrão do sistema.
-            </p>
+            {/* ── Tela de seleção ── */}
+            {view === 'select' && (
+              <>
+                <h3 className="text-xl font-bold text-gray-800 mb-1">O que você esqueceu?</h3>
+                <p className="text-gray-500 text-sm mb-6">Selecione uma opção para continuar.</p>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setView('senha-local')}
+                    className="w-full text-left border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:bg-purple-50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                        <Lock size={17} className="text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Esqueci minha senha</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Redefinir aqui ou receber link por e-mail</p>
+                      </div>
+                    </div>
+                  </button>
 
-            {recoveryStatus === 'success' ? (
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
-                  <CheckCircle size={20} className="text-green-600 mt-0.5 shrink-0" />
+                  <button
+                    onClick={() => setView('email-usuario')}
+                    className="w-full text-left border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:bg-purple-50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                        <Mail size={17} className="text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">Esqueci meu e-mail</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Encontrar e-mail pelo nome de usuário</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Esqueci senha — opções ── */}
+            {view === 'senha-local' && (
+              <>
+                <button onClick={() => setView('select')}
+                  className="text-xs text-purple-600 hover:underline mb-4 block">← Voltar</button>
+                <h3 className="text-xl font-bold text-gray-800 mb-1">Esqueci minha senha</h3>
+                <p className="text-gray-500 text-sm mb-6">Escolha como deseja recuperar o acesso.</p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setView('senha-local')}
+                    className="hidden"
+                  />
+                  {/* Opção 1: Redefinir aqui */}
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-gray-800 mb-1">Redefinir para senha padrão</p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Informe seu e-mail. A senha será redefinida para{' '}
+                      <span className="font-mono font-semibold text-gray-700">{DEFAULT_PASSWORD}</span>{' '}
+                      e você poderá criar uma nova ao entrar.
+                    </p>
+
+                    {localStatus === 'success' ? (
+                      <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                        <CheckCircle size={16} className="text-green-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">Senha redefinida!</p>
+                          <p className="text-xs text-green-700 mt-0.5">
+                            Use a senha padrão <span className="font-mono font-bold">{DEFAULT_PASSWORD}</span> para entrar.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleLocalReset} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="email"
+                            value={recoveryEmail}
+                            onChange={e => { setRecoveryEmail(e.target.value); setLocalStatus('idle') }}
+                            required
+                            placeholder="seu@email.com"
+                            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
+                          />
+                        </div>
+                        <button type="submit"
+                          className="px-3 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 whitespace-nowrap"
+                          style={{ backgroundColor: '#4f2e87' }}>
+                          Redefinir
+                        </button>
+                      </form>
+                    )}
+                    {localStatus === 'error' && (
+                      <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                        <AlertCircle size={12} /> E-mail não encontrado.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Opção 2: Receber por e-mail */}
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-gray-800 mb-1">Receber link por e-mail</p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Enviaremos um link seguro para você criar uma nova senha. Expira em 1 hora.
+                    </p>
+
+                    {emailSendStatus === 'sent' ? (
+                      <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                        <CheckCircle size={16} className="text-green-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">E-mail enviado!</p>
+                          <p className="text-xs text-green-700 mt-0.5">Verifique sua caixa de entrada.</p>
+                        </div>
+                      </div>
+                    ) : emailSendStatus === 'error' ? (
+                      <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <AlertCircle size={14} className="text-red-500 shrink-0" />
+                        <p className="text-xs text-red-600">Erro ao enviar. Tente redefinir aqui acima.</p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleEmailSend} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="email"
+                            value={emailSendAddr}
+                            onChange={e => setEmailSendAddr(e.target.value)}
+                            required
+                            placeholder="seu@email.com"
+                            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
+                          />
+                        </div>
+                        <button type="submit"
+                          disabled={emailSendStatus === 'sending'}
+                          className="px-3 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 disabled:opacity-60 flex items-center gap-1.5"
+                          style={{ backgroundColor: '#4f2e87' }}>
+                          {emailSendStatus === 'sending'
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <Send size={14} />}
+                          {emailSendStatus === 'sending' ? 'Enviando…' : 'Enviar'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Esqueci meu e-mail ── */}
+            {view === 'email-usuario' && (
+              <>
+                <button onClick={() => setView('select')}
+                  className="text-xs text-purple-600 hover:underline mb-4 block">← Voltar</button>
+                <h3 className="text-xl font-bold text-gray-800 mb-1">Esqueci meu e-mail</h3>
+                <p className="text-gray-500 text-sm mb-6">
+                  Informe seu nome de usuário e vamos mostrar o e-mail associado.
+                </p>
+
+                <form onSubmit={handleEmailQuery} className="space-y-4">
                   <div>
-                    <p className="text-sm font-semibold text-green-800">Senha redefinida!</p>
-                    <p className="text-sm text-green-700 mt-1">
-                      Sua nova senha temporária é:{' '}
-                      <span className="font-mono font-bold">{DEFAULT_PASSWORD}</span>
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      Você será solicitado a criar uma nova senha ao entrar.
-                    </p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome de usuário</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={usernameQuery}
+                        onChange={e => { setUsernameQuery(e.target.value); setFoundEmail(null); setEmailQueryError('') }}
+                        required
+                        placeholder="ex: joao.silva"
+                        className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
+                      />
+                    </div>
                   </div>
-                </div>
-                <button
-                  onClick={closeRecovery}
-                  className="w-full py-2.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: '#4f2e87' }}
-                >
-                  Voltar ao login
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleRecovery} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">E-mail cadastrado</label>
-                  <div className="relative">
-                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="email"
-                      value={recoveryEmail}
-                      onChange={e => { setRecoveryEmail(e.target.value); setRecoveryStatus('idle') }}
-                      required
-                      placeholder="seu@email.com"
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white"
-                    />
-                  </div>
-                </div>
 
-                {recoveryStatus === 'error' && (
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    <AlertCircle size={16} className="text-red-500 shrink-0" />
-                    <p className="text-sm text-red-600">E-mail não encontrado. Verifique e tente novamente.</p>
-                  </div>
-                )}
+                  {emailQueryError && (
+                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      <AlertCircle size={14} className="text-red-500 shrink-0" />
+                      <p className="text-sm text-red-600">{emailQueryError}</p>
+                    </div>
+                  )}
 
-                <button
-                  type="submit"
-                  disabled={recoveryLoading}
-                  className="w-full py-2.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-60"
-                  style={{ backgroundColor: '#4f2e87' }}
-                >
-                  {recoveryLoading ? 'Verificando…' : 'Redefinir senha'}
-                </button>
-              </form>
+                  {foundEmail && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-2">
+                      <p className="text-xs text-purple-600 font-medium uppercase tracking-wide">E-mail encontrado</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-semibold text-gray-800">
+                          {showFullEmail ? foundEmail : maskEmail(foundEmail)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFullEmail(!showFullEmail)}
+                          className="text-xs text-purple-600 hover:underline"
+                        >
+                          {showFullEmail ? 'Ocultar' : 'Mostrar'}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setView('senha-local'); setRecoveryEmail(foundEmail); setLocalStatus('idle') }}
+                        className="text-xs text-purple-700 hover:underline"
+                      >
+                        Recuperar senha com este e-mail →
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: '#4f2e87' }}
+                  >
+                    Buscar e-mail
+                  </button>
+                </form>
+              </>
             )}
           </div>
         </div>
