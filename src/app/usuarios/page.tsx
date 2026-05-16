@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Pencil, Trash2, ShieldCheck, User, ToggleLeft, ToggleRight, X, Save, Eye, EyeOff } from 'lucide-react'
+import { UserPlus, Pencil, Trash2, ShieldCheck, User, ToggleLeft, ToggleRight, X, Save, Eye, EyeOff, KeyRound, Copy, Check } from 'lucide-react'
 
 const PURPLE = '#4f2e87'
 
@@ -35,6 +35,10 @@ export default function UsuariosPage() {
   const [showPass, setShowPass] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const [resetModal, setResetModal] = useState<{ user: UserRow; novaSenha: string } | null>(null)
+  const [resetting, setResetting] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const isAdmin = session?.user?.role === 'ADMIN'
 
@@ -106,6 +110,30 @@ export default function UsuariosPage() {
     else fetchUsers()
   }
 
+  async function handleResetSenha(u: UserRow) {
+    if (!confirm(`Redefinir a senha de "${u.name || u.email}"? Uma nova senha será gerada.`)) return
+    setResetting(u.id)
+    const res = await fetch('/api/usuarios/resetar-senha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id }),
+    })
+    const data = await res.json()
+    setResetting(null)
+    if (res.ok) {
+      setResetModal({ user: u, novaSenha: data.novaSenha })
+      setCopied(false)
+    } else {
+      alert(data.error ?? 'Erro ao redefinir senha')
+    }
+  }
+
+  function copiarSenha(senha: string) {
+    navigator.clipboard.writeText(senha)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,6 +195,14 @@ export default function UsuariosPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 justify-end">
+                    <button
+                      onClick={() => handleResetSenha(u)}
+                      disabled={resetting === u.id}
+                      className="p-1.5 rounded-lg hover:bg-yellow-50 text-yellow-500 transition-colors disabled:opacity-40"
+                      title="Redefinir senha"
+                    >
+                      <KeyRound size={14} />
+                    </button>
                     <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Editar">
                       <Pencil size={14} />
                     </button>
@@ -188,6 +224,48 @@ export default function UsuariosPage() {
         </table>
       </div>
 
+      {/* Modal nova senha */}
+      {resetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-gray-800">Senha Redefinida</h2>
+              <button onClick={() => setResetModal(null)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-600">
+                Nova senha gerada para <strong>{resetModal.user.name || resetModal.user.email}</strong>. Comunique ao usuário e peça para trocar no próximo acesso.
+              </p>
+              <div className="flex items-center gap-2 bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl px-4 py-3">
+                <span className="flex-1 font-mono text-2xl font-bold tracking-widest text-purple-700">
+                  {resetModal.novaSenha}
+                </span>
+                <button
+                  onClick={() => copiarSenha(resetModal.novaSenha)}
+                  className="p-1.5 rounded-lg hover:bg-purple-100 text-purple-500 transition-colors"
+                  title="Copiar"
+                >
+                  {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">Esta senha não será exibida novamente após fechar.</p>
+            </div>
+            <div className="px-6 pb-5">
+              <button
+                onClick={() => setResetModal(null)}
+                className="w-full py-2.5 rounded-lg text-white text-sm font-semibold"
+                style={{ backgroundColor: PURPLE }}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal criar/editar */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
