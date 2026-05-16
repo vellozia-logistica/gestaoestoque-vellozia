@@ -36,7 +36,7 @@ export default function UsuariosPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN'
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return }

@@ -54,7 +54,7 @@ function buildRenderList(
 export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN'
+  const isAdmin = session?.user?.role === 'ADMIN'
   const { sidebarCollapsed, setSidebarCollapsed, inconsistencias, sidebarConfig, setSidebarConfig } = useStore()
   const pendentes = inconsistencias.filter(i => !i.resolvido).length
   const visibleItems = MENU_ITEMS.filter(item => !item.adminOnly || isAdmin)

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import { AppState, SiacItem, VelloziaItem, IdProdutoGrupo, RelacionamentoSiacVellozia, Inconsistencia, SidebarConfig } from '@/types'
 
 export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  ordem: ['pasta:gestao-id'],
+  ordem: ['pasta:gestao-id', '/usuarios'],
   pastas: [{ id: 'gestao-id', label: 'GESTÃO DE ID' }],
   itemPasta: {
     '/': 'gestao-id',
