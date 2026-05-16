@@ -43,6 +43,7 @@ export default function LoginPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: emailRecuperar }),
+      signal: AbortSignal.timeout(15000),
     })
     setEnviando(false)
     if (res.ok) {
