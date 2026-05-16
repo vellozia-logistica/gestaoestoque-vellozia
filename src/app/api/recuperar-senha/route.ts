@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/prisma'
 
 function gerarSenha(): string {
@@ -12,16 +12,24 @@ function gerarSenha(): string {
   return senha
 }
 
+function criarTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  })
+}
+
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
   if (!email) return NextResponse.json({ error: 'Email obrigatório' }, { status: 400 })
 
   const user = await prisma.gestaoEstoqueUser.findUnique({ where: { email } })
 
-  // Responde sempre com sucesso para não revelar se o e-mail existe ou não
-  if (!user || !user.active) {
-    return NextResponse.json({ ok: true })
-  }
+  // Responde sempre com sucesso para não revelar se o e-mail existe
+  if (!user || !user.active) return NextResponse.json({ ok: true })
 
   const novaSenha = gerarSenha()
   const hash = await bcrypt.hash(novaSenha, 10)
@@ -31,10 +39,10 @@ export async function POST(req: NextRequest) {
     data: { passwordHash: hash },
   })
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  const transporter = criarTransporter()
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM ?? 'Vellozia <noreply@velloziaoficial.com.br>',
+  await transporter.sendMail({
+    from: `"Vellozia" <${process.env.GMAIL_USER}>`,
     to: email,
     subject: 'Sua nova senha — Conciliação Siac x Vellozia',
     html: `
@@ -53,7 +61,7 @@ export async function POST(req: NextRequest) {
             <p style="color: #4f2e87; font-size: 28px; font-weight: bold; letter-spacing: 4px; margin: 0; font-family: monospace;">${novaSenha}</p>
           </div>
           <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-            Se você não solicitou a recuperação de senha, ignore este e-mail. Sua senha anterior permanece ativa se você não tiver solicitado a troca.
+            Se você não solicitou a recuperação de senha, ignore este e-mail.
           </p>
         </div>
         <p style="color: #d1d5db; font-size: 11px; text-align: center; margin-top: 20px;">Vellozia 2026</p>
