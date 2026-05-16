@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 
 function gerarSenha(): string {
@@ -30,21 +30,10 @@ export async function POST(req: NextRequest) {
   })
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    })
+    const resend = new Resend(process.env.RESEND_API_KEY)
 
-    await transporter.sendMail({
-      from: `"Vellozia" <${process.env.GMAIL_USER}>`,
+    const { error } = await resend.emails.send({
+      from: 'Vellozia <onboarding@resend.dev>',
       to: email,
       subject: 'Sua nova senha — Conciliação Siac x Vellozia',
       html: `
@@ -70,6 +59,11 @@ export async function POST(req: NextRequest) {
         </div>
       `,
     })
+
+    if (error) {
+      console.error('[recuperar-senha] Erro Resend:', error)
+      return NextResponse.json({ error: 'Falha ao enviar email' }, { status: 500 })
+    }
 
     console.log(`[recuperar-senha] Email enviado para ${email}`)
   } catch (err) {
