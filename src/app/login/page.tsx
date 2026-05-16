@@ -38,13 +38,18 @@ export default function LoginPage() {
   async function handleRecuperar(e: React.FormEvent) {
     e.preventDefault()
     setEnviando(true)
-    await fetch('/api/recuperar-senha', {
+    setError('')
+    const res = await fetch('/api/recuperar-senha', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: emailRecuperar }),
     })
     setEnviando(false)
-    setTela('enviado')
+    if (res.ok) {
+      setTela('enviado')
+    } else {
+      setError('Não foi possível enviar o email. Tente novamente.')
+    }
   }
 
   return (
