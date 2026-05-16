@@ -2,8 +2,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { ChevronDown, ChevronRight, ChevronLeft, Settings, Folder, FolderOpen } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronLeft, Settings, Folder, FolderOpen, LogOut } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
 import { useStore, DEFAULT_SIDEBAR_CONFIG } from '@/lib/store'
 import { SidebarPasta } from '@/types'
 import { MENU_ITEMS, MenuItem } from '@/lib/sidebarMenu'
@@ -52,8 +53,11 @@ function buildRenderList(
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isAdmin = (session?.user as { role?: string })?.role === 'ADMIN'
   const { sidebarCollapsed, setSidebarCollapsed, inconsistencias, sidebarConfig, setSidebarConfig } = useStore()
   const pendentes = inconsistencias.filter(i => !i.resolvido).length
+  const visibleItems = MENU_ITEMS.filter(item => !item.adminOnly || isAdmin)
   const [openMenus, setOpenMenus] = useState<string[]>(['Importar Arquivos'])
   const [openPastas, setOpenPastas] = useState<string[]>(['gestao-id'])
   const [showConfig, setShowConfig] = useState(false)
@@ -71,7 +75,7 @@ export default function Sidebar() {
 
   const collapsed = sidebarCollapsed
   const config = (sidebarConfig?.pastas?.length > 0) ? sidebarConfig : DEFAULT_SIDEBAR_CONFIG
-  const renderList = buildRenderList(MENU_ITEMS, config.ordem, config.pastas, config.itemPasta)
+  const renderList = buildRenderList(visibleItems, config.ordem, config.pastas, config.itemPasta)
   const pastaEntries = renderList.filter(e => e.tipo === 'pasta') as Extract<RenderEntry, { tipo: 'pasta' }>[]
   const pinnedItems = renderList.filter(e => e.tipo === 'item').map(e => (e as Extract<RenderEntry, { tipo: 'item' }>).item)
 
@@ -189,17 +193,33 @@ export default function Sidebar() {
           )}
         </div>
 
-        <div className="border-t border-purple-600 px-3 py-2">
+        <div className="border-t border-purple-600 px-3 py-2 space-y-1">
           {!collapsed ? (
-            <button onClick={() => setShowConfig(true)}
-              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-purple-300 hover:bg-purple-700 hover:text-white transition-colors text-xs">
-              <Settings size={13} /> Configurar menu
-            </button>
+            <>
+              <div className="px-2 py-1.5">
+                <p className="text-white text-xs font-semibold truncate">{session?.user?.name || session?.user?.email}</p>
+                <p className="text-purple-400 text-xs truncate">{isAdmin ? 'Administrador' : 'Usuário'}</p>
+              </div>
+              <button onClick={() => setShowConfig(true)}
+                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-purple-300 hover:bg-purple-700 hover:text-white transition-colors text-xs">
+                <Settings size={13} /> Configurar menu
+              </button>
+              <button onClick={() => signOut({ callbackUrl: '/login' })}
+                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-purple-300 hover:bg-red-600 hover:text-white transition-colors text-xs">
+                <LogOut size={13} /> Sair
+              </button>
+            </>
           ) : (
-            <button onClick={() => setShowConfig(true)} title="Configurar menu"
-              className="w-full flex justify-center p-2 rounded-lg text-purple-400 hover:bg-purple-700 hover:text-white transition-colors">
-              <Settings size={15} />
-            </button>
+            <>
+              <button onClick={() => setShowConfig(true)} title="Configurar menu"
+                className="w-full flex justify-center p-2 rounded-lg text-purple-400 hover:bg-purple-700 hover:text-white transition-colors">
+                <Settings size={15} />
+              </button>
+              <button onClick={() => signOut({ callbackUrl: '/login' })} title="Sair"
+                className="w-full flex justify-center p-2 rounded-lg text-purple-400 hover:bg-red-600 hover:text-white transition-colors">
+                <LogOut size={15} />
+              </button>
+            </>
           )}
         </div>
       </aside>

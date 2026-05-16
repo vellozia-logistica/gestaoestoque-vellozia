@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import AppShell from '@/components/layout/AppShell'
+import AuthSessionProvider from '@/components/auth/SessionProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" style={{ colorScheme: 'light' }}>
       <body className={inter.className} style={{ backgroundColor: '#f8f7fa', color: '#1a1a2e' }}>
-        <AppShell>{children}</AppShell>
+        <AuthSessionProvider>
+          <AppShell>{children}</AppShell>
+        </AuthSessionProvider>
       </body>
     </html>
   )

@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tabela exclusiva do gestaoestoque-vellozia (não compartilhada com ressuprimento-vellozia)
+model GestaoEstoqueUser {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  passwordHash String
+  active       Boolean    @default(true)
+  role         GestaoRole @default(USER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("gestao_estoque_users")
+}
+
+enum GestaoRole {
+  ADMIN
+  USER
+
+  @@map("gestao_role")
+}

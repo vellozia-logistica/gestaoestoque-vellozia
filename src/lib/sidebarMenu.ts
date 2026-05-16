@@ -1,4 +1,4 @@
-import { LayoutDashboard, Upload, GitMerge, PackageSearch, FileText, Tag, AlertTriangle } from 'lucide-react'
+import { LayoutDashboard, Upload, GitMerge, PackageSearch, FileText, Tag, AlertTriangle, Users } from 'lucide-react'
 
 export interface MenuChild {
   label: string
@@ -15,6 +15,7 @@ export interface MenuItem {
   href?: string
   children?: MenuChild[]
   badge?: boolean
+  adminOnly?: boolean
 }
 
 export const ALL_TELAS: { href: string; label: string; groupLabel?: string }[] = []
@@ -53,6 +54,14 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: AlertTriangle,
     iconColor: '#f97316',
     badge: true,
+  },
+  {
+    id: '/usuarios',
+    label: 'Usuários',
+    href: '/usuarios',
+    icon: Users,
+    iconColor: '#a78bfa',
+    adminOnly: true,
   },
 ]
 
