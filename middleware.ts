@@ -6,7 +6,7 @@ export default withAuth(
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
 
-    if (token?.mustChangePassword && pathname !== '/trocar-senha') {
+    if (token?.mustChangePassword && pathname !== '/trocar-senha' && pathname !== '/api/trocar-senha') {
       return NextResponse.redirect(new URL('/trocar-senha', req.url))
     }
 
