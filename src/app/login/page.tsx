@@ -36,7 +36,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="px-8 py-8 flex flex-col items-center" style={{ backgroundColor: PURPLE }}>
             <Image src="/logo.jpg" alt="Vellozia" width={64} height={64} className="rounded-xl mb-3 object-cover" />
-            <h1 className="text-white font-bold text-xl leading-tight">Gestão de Estoque</h1>
+            <h1 className="text-white font-bold text-xl leading-tight">Conciliação Siac x Vellozia</h1>
             <p className="text-purple-300 text-sm">Vellozia Produtos Hospitalares</p>
           </div>
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-gray-400 text-xs pb-4">
-            Vellozia 2026 · Gestão de Estoque
+            Vellozia 2026 · Conciliação Siac x Vellozia
           </p>
         </div>
       </div>

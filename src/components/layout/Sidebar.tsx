@@ -152,7 +152,7 @@ export default function Sidebar() {
           <Image src="/logo.jpg" alt="Vellozia" width={collapsed ? 36 : 44} height={collapsed ? 36 : 44} className="rounded-lg shrink-0 object-cover" />
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-white font-bold text-sm leading-tight whitespace-nowrap">Gestão de Estoque</p>
+              <p className="text-white font-bold text-sm leading-tight whitespace-nowrap">Conciliação Siac x Vellozia</p>
               <p className="text-purple-300 text-xs">Vellozia</p>
             </div>
           )}
