@@ -13,10 +13,11 @@ model GestaoEstoqueUser {
   email        String     @unique
   name         String?
   passwordHash String
-  active       Boolean    @default(true)
-  role         GestaoRole @default(USER)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  active             Boolean    @default(true)
+  role               GestaoRole @default(USER)
+  mustChangePassword Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   @@map("gestao_estoque_users")
 }

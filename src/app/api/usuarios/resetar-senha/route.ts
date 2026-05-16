@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   await prisma.gestaoEstoqueUser.update({
     where: { id },
-    data: { passwordHash },
+    data: { passwordHash, mustChangePassword: true },
   })
 
   return NextResponse.json({ novaSenha })
