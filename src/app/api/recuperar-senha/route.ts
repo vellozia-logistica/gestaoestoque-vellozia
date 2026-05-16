@@ -29,44 +29,52 @@ export async function POST(req: NextRequest) {
   })
 
   try {
-    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const credentials = Buffer.from(
+      `${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`
+    ).toString('base64')
+
+    const mailjetRes = await fetch('https://api.mailjet.com/v3.1/send', {
       method: 'POST',
       headers: {
-        'api-key': process.env.BREVO_API_KEY!,
-        'content-type': 'application/json',
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'Vellozia', email: process.env.BREVO_FROM },
-        to: [{ email }],
-        subject: 'Sua nova senha — Conciliação Siac x Vellozia',
-        htmlContent: `
-          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f8f7fa;">
-            <div style="background: #4f2e87; border-radius: 12px 12px 0 0; padding: 28px; text-align: center;">
-              <h1 style="color: white; font-size: 20px; margin: 0;">Conciliação Siac x Vellozia</h1>
-              <p style="color: #c4b5fd; font-size: 13px; margin: 6px 0 0;">Vellozia Produtos Hospitalares</p>
-            </div>
-            <div style="background: white; border-radius: 0 0 12px 12px; padding: 28px;">
-              <p style="color: #374151; font-size: 14px; margin: 0 0 16px;">Olá, <strong>${user.name ?? email}</strong>.</p>
-              <p style="color: #374151; font-size: 14px; margin: 0 0 24px;">
-                Uma nova senha foi gerada para o seu acesso. Utilize-a para entrar no sistema e troque-a assim que possível.
-              </p>
-              <div style="background: #f3f0ff; border: 2px dashed #7c3aed; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
-                <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1px;">Sua nova senha</p>
-                <p style="color: #4f2e87; font-size: 28px; font-weight: bold; letter-spacing: 4px; margin: 0; font-family: monospace;">${novaSenha}</p>
+        Messages: [
+          {
+            From: { Email: process.env.MAILJET_FROM, Name: 'Vellozia' },
+            To: [{ Email: email }],
+            Subject: 'Sua nova senha — Conciliação Siac x Vellozia',
+            HTMLPart: `
+              <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f8f7fa;">
+                <div style="background: #4f2e87; border-radius: 12px 12px 0 0; padding: 28px; text-align: center;">
+                  <h1 style="color: white; font-size: 20px; margin: 0;">Conciliação Siac x Vellozia</h1>
+                  <p style="color: #c4b5fd; font-size: 13px; margin: 6px 0 0;">Vellozia Produtos Hospitalares</p>
+                </div>
+                <div style="background: white; border-radius: 0 0 12px 12px; padding: 28px;">
+                  <p style="color: #374151; font-size: 14px; margin: 0 0 16px;">Olá, <strong>${user.name ?? email}</strong>.</p>
+                  <p style="color: #374151; font-size: 14px; margin: 0 0 24px;">
+                    Uma nova senha foi gerada para o seu acesso. Utilize-a para entrar no sistema e troque-a assim que possível.
+                  </p>
+                  <div style="background: #f3f0ff; border: 2px dashed #7c3aed; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                    <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1px;">Sua nova senha</p>
+                    <p style="color: #4f2e87; font-size: 28px; font-weight: bold; letter-spacing: 4px; margin: 0; font-family: monospace;">${novaSenha}</p>
+                  </div>
+                  <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                    Se você não solicitou a recuperação de senha, ignore este e-mail.
+                  </p>
+                </div>
+                <p style="color: #d1d5db; font-size: 11px; text-align: center; margin-top: 20px;">Vellozia 2026</p>
               </div>
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                Se você não solicitou a recuperação de senha, ignore este e-mail.
-              </p>
-            </div>
-            <p style="color: #d1d5db; font-size: 11px; text-align: center; margin-top: 20px;">Vellozia 2026</p>
-          </div>
-        `,
+            `,
+          },
+        ],
       }),
     })
 
-    if (!brevoRes.ok) {
-      const body = await brevoRes.text()
-      console.error('[recuperar-senha] Erro Brevo:', body)
+    if (!mailjetRes.ok) {
+      const body = await mailjetRes.text()
+      console.error('[recuperar-senha] Erro Mailjet:', body)
       return NextResponse.json({ error: 'Falha ao enviar email' }, { status: 500 })
     }
 
